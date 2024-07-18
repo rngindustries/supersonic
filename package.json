@@ -1,0 +1,13 @@
+{
+  "name": "reball",
+  "version": "1.0.0",
+  "description": "discord framework",
+  "scripts": {
+    "dev": "npx ts-node-dev lib/index.ts"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.5.3"
+  }
+}
