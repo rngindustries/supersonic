@@ -29,7 +29,8 @@
         "skipLibCheck": true,
         "outDir": "./dist",
         "sourceMap": true,
-        "removeComments": true
+        "removeComments": true,
+        "esModuleInterop": true
     },
     "include": ["lib/*.ts"]
 }

@@ -1,79 +1,114 @@
-import { Command, Option } from "./types";
+import { resolve, dirname, basename } from "path";
+import { ApplicationCommand, Client } from "discord.js";
+import { ClientOptions, Command, CommandData } from "./types";
+import { cmd_type_mapping, glob } from "./utils";
+import _ from "lodash";
 
-export function _short(command: string) {
-    let output: Command = {
-        name: "base-command",
-        description: "No description provided.",
-        global: true,
-        type: "CHAT_INPUT",
-        options: []
-    };
+export async function initialize(options?: ClientOptions | string): Promise<Client<boolean>> {
+    let options_json_file: string = "";
+    if (typeof options === "string")
+        options_json_file = options;
+    else if (options === undefined)
+        options_json_file = "./bot.json";
+
+    if (options_json_file)
+        options = await import(options_json_file);
+
+    this.opts = options as ClientOptions;
     
-    let tokens = /^(?<command_data>[\w\-\/]+)\s(?<command_options>(?:(\[|<)[\w:-]+(\]|>)\s?)+)\((?<command_descriptions>(?:\$\d=.+,?)+)\)$/.exec(command);
-    
-    if (!tokens || !tokens.groups) return;
-    
-    const command_data: string = tokens.groups["command_data"] as string; 
-    const command_options = tokens.groups["command_options"]?.trim()?.split(" ");
-    const command_descriptions = tokens.groups["command_descriptions"]?.split(",");
-    
-    let data = /^(?<guild>g)?(?<type>u|m)?\/(?<name>[\w-]+)$/.exec(command_data);
-    if (data && data.groups) {
-        let guild = data.groups["guild"];
-        let type = data.groups["type"];
-        let name: string = data.groups["name"] ?? "";
+    if (this.opts.guilds)
+        this.guilds = this.opts.guilds;
+    if (this.opts.channels)
+        this.channels = this.opts.channels;
+    if (this.opts.emojis)
+        this.emojis = this.opts.emojis;
+
+    const client = new Client(this.opts);
+    this._client = client;
+
+    return client;
+}   
+
+export async function build(token: string) {
+    if (!this._client || !this.opts) 
+        return;
+
+    await this._client.login(token);
+
+    if (this.opts.module) {
+        const command_files = await glob(resolve(__dirname, this.opts.command_directory, "**", "*.{ts,js}")) as string[];
         
-        if (guild)
-            output.global = false;
-        if (type === "u")
-            output.type = "USER";
-        if (type === "m")
-            output.type = "MESSAGE";
-        output.name = name;
+        for (const command_file of command_files) {
+            let command_module: Command = (await import(command_file)).default || await import(command_file);
+            if (typeof command_module.command === "string")
+                command_module.command = this.short(command_module.command) as CommandData;
+            let command_data: CommandData = command_module.command;
+
+            if (this.opts.use_directory_as_category && !command_data.category) {
+                // use_directory_as_category does not override defined categories
+                let command_directory = basename(dirname(command_file));
+               
+                if (command_directory !== basename(this.opts.command_directory))
+                    command_data.category = command_directory;
+                else
+                    command_data.category = "general";
+            }
+
+            this.commands.set(command_data.name, command_module);
+        }
     }
 
-    if (command_options) {
-        for (const command_option of command_options) {
-            let opt = /^(?<name>[\w-]+):(?<type>str|int|num|bool|user|ch|role|ment|att)(?::(?<max_value>\^\d+))?(?::(?<min_value>v\d+))?$/.exec(command_option.substring(1, command_option.length-1));
-            
-            if (opt && opt.groups) {
-                let required: boolean = (command_option[0] === "<" ? true : false);
-                let name: string = opt.groups["name"] ?? "";
-                let type: string = opt.groups["type"] ?? "";
-                
-                let option: Option = {
-                    name: name,
-                    description: "No description provided.",
-                    type: type,
-                    required: required
-                };
+    const slash_commands = await this._client.application?.commands.fetch({ cache: true });
 
-                if (opt.groups["max_value"]) 
-                    option.max_value = parseInt(opt.groups["max_value"].substring(1));
-                if (opt.groups["min_value"])
-                    option.min_value = parseInt(opt.groups["min_value"].substring(1));
+    for (const command of this.commands) {
+        let command_module: Command = command[1];
+        let command_data: CommandData = command_module.command as CommandData;
+        
+        this.categories.add(command_data.category ?? "general");
 
-                output.options.push(option);
+        let defined_command: ApplicationCommand = slash_commands.find((cmd: ApplicationCommand) => cmd.name === command_data.name);
+
+        if (!defined_command) {
+            await this._client.application?.commands.create({
+                name: command_data.name,
+                description: command_data.type === "CHAT_INPUT" ? command_data.description : "",
+                type: cmd_type_mapping(command_data.type),
+                options: command_data.options
+            });
+        } else {
+            const command_fmt = {
+                name: command_data.name,
+                description: command_data.type === "CHAT_INPUT" ? command_data.description : "",
+                type: cmd_type_mapping(command_data.type),
+                options: command_data.options
+            };
+
+            const defined_command_fmt = {
+                name: defined_command.name,
+                description: defined_command.description,
+                type: defined_command.type,
+                options: defined_command.options.map(opt => {
+                    // https://github.com/monkeytypegame/monkeytype-bot/blob/66a97ae4cb6c282c8dff1731af91c55d7cddb26c/src/structures/client.ts#L252
+                    type Keys = keyof typeof opt;
+                    type Values = typeof opt[Keys];
+                    type Entries = [Keys, Values];
+
+                    for (const [key, value] of Object.entries(opt) as Entries[]) {
+                        if (value === undefined || (Array.isArray(value) && value.length === 0)) {
+                            delete opt[key];
+                        }
+                    }
+
+                    return opt;
+                })
+            };
+
+            if (!_.isEqual(command_fmt, defined_command_fmt)) {
+                await this.application?.commands.edit(
+                    defined_command,
+                    command_fmt 
+                );
             }
         }
     }
-
-    if (command_descriptions) {
-        for (const command_description of command_descriptions) {
-            let delim_pos = command_description.indexOf("=");
-            
-            if (delim_pos !== -1) {
-                let description_pos = parseInt(command_description.substring(0, delim_pos).substring(1));
-                let description_text = command_description.substring(delim_pos+1);
-                
-                if (description_pos === 1) { // **not zero-indexed
-                    output.description = description_text;
-                } else if (output.options[description_pos-2]) { 
-                    (output.options[description_pos-2] as Option).description = description_text;
-                }
-            } 
-        }
-    }
-
-    return output;
 }

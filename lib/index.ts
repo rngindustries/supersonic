@@ -1,14 +1,12 @@
-import { _short } from "./client";
+import * as client from "./client";
+import * as command from "./command";
+import { Command } from "./types";
 
-const r = {
-    commands: {},
-    paths: {
-        "commands": "./commands",
-        "events": "./events",
-        "middleware": "./middleware",
-        "static": "./static"
-    },
-    short: _short
+let r = {
+    commands: new Map<string, Command>(),
+    categories: new Set<string>(),
+    ...client,
+    ...command
 };
 
 export default r;
