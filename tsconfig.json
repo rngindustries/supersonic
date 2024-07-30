@@ -32,5 +32,5 @@
         "removeComments": true,
         "esModuleInterop": true
     },
-    "include": ["lib/*.ts"]
+    "include": ["lib/**/*.ts"]
 }

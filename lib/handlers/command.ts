@@ -1,7 +1,7 @@
-import { CommandData, CommandDataOption } from "./types";
-import { opt_type_mapping } from "./utils";
+import { CommandData, CommandDataOption } from "../types";
+import { opt_type_mapping } from "../utils";
 
-export function short(command: string) {
+export function parse_command(command: string) {
     let output: CommandData = {
         name: "base-command",
         description: "No description provided",

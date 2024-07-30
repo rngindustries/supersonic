@@ -1,5 +1,5 @@
 import { 
-    CommandInteraction, 
+    ChatInputCommandInteraction,
     ClientOptions as DiscordClientOptions,
     MessageContextMenuCommandInteraction,
     UserContextMenuCommandInteraction
@@ -9,7 +9,7 @@ export interface Command {
     command: string | CommandData;
     execute: (
         interaction:
-        CommandInteraction | 
+        ChatInputCommandInteraction | 
         MessageContextMenuCommandInteraction | 
         UserContextMenuCommandInteraction
     ) => void;

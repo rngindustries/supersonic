@@ -2,6 +2,7 @@ import { resolve, dirname, basename } from "path";
 import { ApplicationCommand, Client } from "discord.js";
 import { ClientOptions, Command, CommandData } from "./types";
 import { cmd_type_mapping, glob } from "./utils";
+import { handle_interaction } from "./handlers/defaults";
 import _ from "lodash";
 
 export async function initialize(options?: ClientOptions | string): Promise<Client<boolean>> {
@@ -26,6 +27,8 @@ export async function initialize(options?: ClientOptions | string): Promise<Clie
     const client = new Client(this.opts);
     this._client = client;
 
+    this._client.on("interactionCreate", handle_interaction.bind(this));
+
     return client;
 }   
 
@@ -41,7 +44,7 @@ export async function build(token: string) {
         for (const command_file of command_files) {
             let command_module: Command = (await import(command_file)).default || await import(command_file);
             if (typeof command_module.command === "string")
-                command_module.command = this.short(command_module.command) as CommandData;
+                command_module.command = this.parse_command(command_module.command) as CommandData;
             let command_data: CommandData = command_module.command;
 
             if (this.opts.use_directory_as_category && !command_data.category) {
@@ -58,7 +61,7 @@ export async function build(token: string) {
         }
     }
 
-    const slash_commands = await this._client.application?.commands.fetch({ cache: true });
+    const slash_commands = await this._client.application?.commands.fetch();
 
     for (const command of this.commands) {
         let command_module: Command = command[1];
@@ -102,9 +105,9 @@ export async function build(token: string) {
                     return opt;
                 })
             };
-
+            
             if (!_.isEqual(command_fmt, defined_command_fmt)) {
-                await this.application?.commands.edit(
+                await this._client.application?.commands.edit(
                     defined_command,
                     command_fmt 
                 );
