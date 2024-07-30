@@ -1,15 +1,23 @@
 {
-  "name": "reball",
+  "name": "@rng-industries/reball",
   "version": "1.0.0",
   "description": "discord framework",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "dev": "npx ts-node-dev lib/index.ts"
+    "dev": "npx ts-node-dev lib/index.ts",
+    "build": "npx tsup lib/index.ts --format cjs,esm --dts"
   },
+  "files": [
+    "dist"
+  ],
   "license": "MIT",
   "devDependencies": {
     "@types/lodash": "^4.17.7",
     "@types/node": "^20.14.11",
     "ts-node-dev": "^2.0.0",
+    "tsup": "^8.2.3",
     "typescript": "^5.5.3"
   },
   "dependencies": {
