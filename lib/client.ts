@@ -3,6 +3,7 @@ import { ApplicationCommand, Client } from "discord.js";
 import { ClientOptions, Command, CommandData } from "./types";
 import { cmd_type_mapping, glob } from "./utils";
 import { handle_interaction } from "./handlers/defaults";
+import { readFile } from "fs/promises";
 import _ from "lodash";
 
 export async function initialize(options?: ClientOptions | string): Promise<Client<boolean>> {
@@ -13,7 +14,7 @@ export async function initialize(options?: ClientOptions | string): Promise<Clie
         options_json_file = "./bot.json";
 
     if (options_json_file)
-        options = await import(options_json_file);
+        options = JSON.parse(await readFile(options_json_file, "utf-8"));
 
     this.opts = options as ClientOptions;
     
