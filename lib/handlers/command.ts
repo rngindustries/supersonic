@@ -1,5 +1,5 @@
 import { Command, CommandData, CommandDataOption, SlashCommandInteraction } from "../types";
-import { opt_type_mapping } from "../utils";
+import { opt_type_mapping } from "../helpers";
 
 export function parse_command(command: string) {
     let output: CommandData = {
