@@ -4,7 +4,6 @@ import { ClientOptions, Command, CommandData } from "./types";
 import { cmd_type_mapping, glob } from "./utils";
 import { handle_interaction } from "./handlers/defaults";
 import { readFile } from "fs/promises";
-import { pathToFileURL } from "url";
 import _ from "lodash";
 
 export async function initialize(options?: ClientOptions | string): Promise<Client<boolean>> {
@@ -44,8 +43,9 @@ export async function build(token: string) {
         const command_files = await glob(resolve(this.opts.command_directory, "**", "*.{ts,js}")) as string[];
         
         for (const command_file of command_files) {
-            let command_file_url = pathToFileURL(command_file).href;
-            let command_module: Command = (await import(command_file_url)).default || await import(command_file_url);
+            // need to require() rather than import() since tsup doesn't import() -> require()
+            // and import() causes a bunch of issues (e.g., needing file:// prepend for absolute paths)
+            let command_module: Command = (require(command_file)).default || require(command_file);
             let command_data: CommandData = command_module.command;
             
             if (this.opts.use_directory_as_category && !command_data.category) {

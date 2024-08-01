@@ -7,7 +7,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "dev": "npx ts-node-dev lib/index.ts",
-    "build": "npx tsup lib/index.ts --format cjs,esm --dts"
+    "build": "npx tsup lib/index.ts --format cjs,esm --clean --dts"
   },
   "files": [
     "dist"
