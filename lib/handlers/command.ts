@@ -1,4 +1,4 @@
-import { CommandData, CommandDataOption } from "../types";
+import { Command, CommandData, CommandDataOption, SlashCommandInteraction } from "../types";
 import { opt_type_mapping } from "../utils";
 
 export function parse_command(command: string) {
@@ -79,4 +79,27 @@ export function parse_command(command: string) {
     }
 
     return output;
+}
+
+export function module(command: string, ...callbacks: Function[]): Command {
+    let command_module = {} as Command;
+    
+    command_module.command = parse_command(command);
+    command_module.middleware = callbacks.slice(0, callbacks.length-1);
+    command_module.execute = callbacks[callbacks.length-1] as (interaction: SlashCommandInteraction) => void;
+
+    return command_module;
+}
+
+export function attach(command: string, ...callbacks: Function[]): void {
+    let command_module = {} as Command;
+
+    command_module.command = parse_command(command);
+    command_module.middleware = callbacks.slice(0, callbacks.length-1);
+    command_module.execute = callbacks[callbacks.length-1] as (interaction: SlashCommandInteraction) => void;
+
+    if (!command_module.command.category)
+        command_module.command.category = this.opts.default_category || "general";
+
+    this.commands.set(command_module.command.name, command_module);
 }

@@ -5,14 +5,12 @@ import {
     UserContextMenuCommandInteraction
 } from "discord.js";
 
+export type SlashCommandInteraction = | ChatInputCommandInteraction | MessageContextMenuCommandInteraction | UserContextMenuCommandInteraction;
+
 export interface Command {
-    command: string | CommandData;
-    execute: (
-        interaction:
-        ChatInputCommandInteraction | 
-        MessageContextMenuCommandInteraction | 
-        UserContextMenuCommandInteraction
-    ) => void;
+    command: CommandData;
+    middleware: Function[]; // TODO: add middleware capabilities
+    execute: (interaction: SlashCommandInteraction) => void;
 }
 
 export interface CommandData {
@@ -44,4 +42,5 @@ export interface ClientOptions extends DiscordClientOptions {
     channels?: { [name: string]: string };
     guilds?: { [name: string]: string };
     use_directory_as_category?: boolean;
+    default_category?: string;
 }
