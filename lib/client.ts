@@ -4,6 +4,7 @@ import { ClientOptions, Command, CommandData } from "./types";
 import { cmd_type_mapping, glob } from "./utils";
 import { handle_interaction } from "./handlers/defaults";
 import { readFile } from "fs/promises";
+import { pathToFileURL } from "url";
 import _ from "lodash";
 
 export async function initialize(options?: ClientOptions | string): Promise<Client<boolean>> {
@@ -11,7 +12,7 @@ export async function initialize(options?: ClientOptions | string): Promise<Clie
     if (typeof options === "string")
         options_json_file = options;
     else if (options === undefined)
-        options_json_file = "./bot.json";
+        options_json_file = "bot.json";
 
     if (options_json_file)
         options = JSON.parse(await readFile(options_json_file, "utf-8"));
@@ -40,14 +41,13 @@ export async function build(token: string) {
     await this._client.login(token);
 
     if (this.opts.module) {
-        const command_files = await glob(resolve(__dirname, this.opts.command_directory, "**", "*.{ts,js}")) as string[];
+        const command_files = await glob(resolve(this.opts.command_directory, "**", "*.{ts,js}")) as string[];
         
         for (const command_file of command_files) {
-            let command_module: Command = (await import(command_file)).default || await import(command_file);
-            if (typeof command_module.command === "string")
-                command_module.command = this.parse_command(command_module.command) as CommandData;
+            let command_file_url = pathToFileURL(command_file).href;
+            let command_module: Command = (await import(command_file_url)).default || await import(command_file_url);
             let command_data: CommandData = command_module.command;
-
+            
             if (this.opts.use_directory_as_category && !command_data.category) {
                 // use_directory_as_category does not override defined categories
                 let command_directory = basename(dirname(command_file));
@@ -55,7 +55,7 @@ export async function build(token: string) {
                 if (command_directory !== basename(this.opts.command_directory))
                     command_data.category = command_directory;
                 else
-                    command_data.category = "general";
+                    command_data.category = this.opts.default_category || "general";
             }
 
             this.commands.set(command_data.name, command_module);
