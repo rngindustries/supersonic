@@ -3,8 +3,8 @@ import {
     CommandCallbacks, 
     CommandData, 
     CommandDataOption, 
-    CommandMiddleware,
-    SlashCommandInteraction
+    CommandExecutor, 
+    CommandMiddleware
 } from "../types";
 import { opt_type_mapping } from "../helpers";
 
@@ -93,8 +93,8 @@ export function module(command: string, ...callbacks: CommandCallbacks): Command
 
     command_module.command = parse_command(command);
     command_module.middleware = callbacks.slice(0, callbacks.length-1) as CommandMiddleware[];
-    command_module.execute = callbacks[callbacks.length-1] as (interaction: SlashCommandInteraction) => void;
-
+    command_module.execute = callbacks[callbacks.length-1] as CommandExecutor;
+    
     return command_module;
 }
 
@@ -103,7 +103,7 @@ export function attach(command: string, ...callbacks: CommandCallbacks): void {
 
     command_module.command = parse_command(command);
     command_module.middleware = callbacks.slice(0, callbacks.length-1) as CommandMiddleware[];
-    command_module.execute = callbacks[callbacks.length-1] as (interaction: SlashCommandInteraction) => void;
+    command_module.execute = callbacks[callbacks.length-1] as CommandExecutor;
 
     if (!command_module.command.category)
         command_module.command.category = this.opts.default_category || "general";

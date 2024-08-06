@@ -22,14 +22,14 @@ export interface CommandData {
     options: CommandDataOption[];
 }
 
-type ChatInputCommandMiddleware = (interaction: ChatInputCommandInteraction, next: () => void) => void;
-type MessageContextMenuCommandMiddleware = (interaction: MessageContextMenuCommandInteraction, next: () => void) => void;
-type UserContextMenuCommandMiddleware = (interaction: UserContextMenuCommandInteraction, next: () => void) => void;
+export type ChatInputCommandMiddleware = (interaction: ChatInputCommandInteraction, next: () => void) => void;
+export type MessageContextMenuCommandMiddleware = (interaction: MessageContextMenuCommandInteraction, next: () => void) => void;
+export type UserContextMenuCommandMiddleware = (interaction: UserContextMenuCommandInteraction, next: () => void) => void;
 export type SlashCommandMiddleware = (interaction: SlashCommandInteraction, next: () => void) => void;
 
-type ChatInputCommandExecutor = (interaction: ChatInputCommandInteraction) => void;
-type MessageContextMenuCommandExecutor = (interaction: MessageContextMenuCommandInteraction) => void;
-type UserContextMenuCommandExecutor = (interaction: UserContextMenuCommandInteraction) => void;
+export type ChatInputCommandExecutor = (interaction: ChatInputCommandInteraction) => void;
+export type MessageContextMenuCommandExecutor = (interaction: MessageContextMenuCommandInteraction) => void;
+export type UserContextMenuCommandExecutor = (interaction: UserContextMenuCommandInteraction) => void;
 export type SlashCommandExecutor = (interaction: SlashCommandInteraction) => void; 
 
 export type CommandMiddleware = | ChatInputCommandMiddleware | MessageContextMenuCommandMiddleware | UserContextMenuCommandMiddleware | SlashCommandMiddleware;
