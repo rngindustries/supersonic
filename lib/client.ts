@@ -2,7 +2,7 @@ import { resolve, dirname, basename } from "path";
 import { ApplicationCommand, Client } from "discord.js";
 import { ClientOptions, Command, CommandData } from "./types";
 import { cmd_type_mapping, glob } from "./helpers";
-import { handle_interaction } from "./handlers/defaults";
+import { handle_interaction } from "./handlers/builtin";
 import { readFile } from "fs/promises";
 import _ from "lodash";
 
