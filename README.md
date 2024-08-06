@@ -2,7 +2,7 @@
 
 A simple Discord framework for easy prototyping and building of Discord bots.
 
-## installation
+## Installation
 
 ```bash
 npm install discord.js
