@@ -1,4 +1,11 @@
-import { Command, CommandData, CommandDataOption, SlashCommandInteraction } from "../types";
+import { 
+    Command,
+    CommandCallbacks, 
+    CommandData, 
+    CommandDataOption, 
+    CommandMiddleware,
+    SlashCommandInteraction
+} from "../types";
 import { opt_type_mapping } from "../helpers";
 
 export function parse_command(command: string) {
@@ -81,21 +88,21 @@ export function parse_command(command: string) {
     return output;
 }
 
-export function module(command: string, ...callbacks: Function[]): Command {
+export function module(command: string, ...callbacks: CommandCallbacks): Command {
     let command_module = {} as Command;
-    
+
     command_module.command = parse_command(command);
-    command_module.middleware = callbacks.slice(0, callbacks.length-1);
+    command_module.middleware = callbacks.slice(0, callbacks.length-1) as CommandMiddleware[];
     command_module.execute = callbacks[callbacks.length-1] as (interaction: SlashCommandInteraction) => void;
 
     return command_module;
 }
 
-export function attach(command: string, ...callbacks: Function[]): void {
+export function attach(command: string, ...callbacks: CommandCallbacks): void {
     let command_module = {} as Command;
 
     command_module.command = parse_command(command);
-    command_module.middleware = callbacks.slice(0, callbacks.length-1);
+    command_module.middleware = callbacks.slice(0, callbacks.length-1) as CommandMiddleware[];
     command_module.execute = callbacks[callbacks.length-1] as (interaction: SlashCommandInteraction) => void;
 
     if (!command_module.command.category)

@@ -2,15 +2,15 @@ import {
     ChatInputCommandInteraction,
     ClientOptions as DiscordClientOptions,
     MessageContextMenuCommandInteraction,
-    UserContextMenuCommandInteraction
+    UserContextMenuCommandInteraction,
 } from "discord.js";
 
 export type SlashCommandInteraction = | ChatInputCommandInteraction | MessageContextMenuCommandInteraction | UserContextMenuCommandInteraction;
 
 export interface Command {
     command: CommandData;
-    middleware: Function[]; // TODO: add middleware capabilities
-    execute: (interaction: SlashCommandInteraction) => void;
+    middleware: CommandMiddleware[];
+    execute: CommandExecutor;
 }
 
 export interface CommandData {
@@ -21,6 +21,21 @@ export interface CommandData {
     type: "CHAT_INPUT" | "USER" | "MESSAGE";
     options: CommandDataOption[];
 }
+
+type ChatInputCommandMiddleware = (interaction: ChatInputCommandInteraction, next: () => void) => void;
+type MessageContextMenuCommandMiddleware = (interaction: MessageContextMenuCommandInteraction, next: () => void) => void;
+type UserContextMenuCommandMiddleware = (interaction: UserContextMenuCommandInteraction, next: () => void) => void;
+export type SlashCommandMiddleware = (interaction: SlashCommandInteraction, next: () => void) => void;
+
+type ChatInputCommandExecutor = (interaction: ChatInputCommandInteraction) => void;
+type MessageContextMenuCommandExecutor = (interaction: MessageContextMenuCommandInteraction) => void;
+type UserContextMenuCommandExecutor = (interaction: UserContextMenuCommandInteraction) => void;
+export type SlashCommandExecutor = (interaction: SlashCommandInteraction) => void; 
+
+export type CommandMiddleware = | ChatInputCommandMiddleware | MessageContextMenuCommandMiddleware | UserContextMenuCommandMiddleware | SlashCommandMiddleware;
+export type CommandExecutor = | ChatInputCommandExecutor | MessageContextMenuCommandExecutor | UserContextMenuCommandExecutor | SlashCommandExecutor;
+
+export type CommandCallbacks = [...CommandMiddleware[], CommandExecutor];
 
 export interface CommandDataOption {
     name: string;
