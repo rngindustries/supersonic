@@ -1,5 +1,9 @@
 import { ChatInputCommandMiddleware, Command, CommandMiddleware, MessageContextMenuCommandMiddleware, SlashCommandInteraction, SlashCommandMiddleware, UserContextMenuCommandMiddleware } from "../types";
  
+export function use(middleware_fn: CommandMiddleware) {
+    this.middleware.push(middleware_fn);
+}
+
 export function handle_middleware(interaction: SlashCommandInteraction, command?: Command) {
     let middlewares: CommandMiddleware[];
     if (command)

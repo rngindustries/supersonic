@@ -1,5 +1,6 @@
 import * as client from "./client";
 import * as command from "./handlers/command";
+import * as middleware from "./handlers/middleware";
 import { Command, CommandMiddleware } from "./types";
 
 export default {
@@ -7,5 +8,6 @@ export default {
     middleware: [] as CommandMiddleware[],
     categories: new Set<string>(),
     ...client,
-    ...command
+    ...command,
+    ...middleware
 };
