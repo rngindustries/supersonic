@@ -1,6 +1,6 @@
 import { resolve, dirname, basename } from "path";
 import { ApplicationCommand, Client, ClientEvents } from "discord.js";
-import { ClientOptions, Command, CommandData, Event } from "./types";
+import { ClientOptions, Command, CommandData, CommandMiddleware, Event } from "./types";
 import { cmd_type_mapping, glob } from "./helpers";
 import { handle_interaction } from "./handlers/builtin";
 import { readFile } from "fs/promises";
@@ -37,6 +37,7 @@ export async function build(token: string) {
     if (!this._client || !this.opts) 
         return;
 
+    await populate_middleware.call(this);
     // init events before logging in for events like ready to properly register
     await initialize_events.call(this);
 
@@ -139,5 +140,19 @@ async function initialize_events() {
     for (const event of this.events) {
         let event_module: Event<keyof ClientEvents> = event[1];
         this._client[event_module.once ? "once" : "on"](event_module.name, event_module.execute.bind(this));
+    }
+}
+
+async function populate_middleware() {
+    if (this.opts.middleware_directory) {
+        const middleware_files = await glob(resolve(this.opts.middleware_directory, "**", "+*.{ts,js}")) as string[];
+
+        for (const middleware_file of middleware_files) {
+            // require: same reasoning as initialize_commands
+            let middleware: CommandMiddleware = (require(middleware_file)).default || require(middleware_file); 
+            
+            if (typeof middleware === "function")
+                this.middleware.push(middleware);
+        }
     }
 }
