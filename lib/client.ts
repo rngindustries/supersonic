@@ -1,7 +1,7 @@
 import { resolve, dirname, basename } from "path";
 import { ApplicationCommand, Client, ClientEvents } from "discord.js";
 import { ClientOptions, Command, CommandData, CommandMiddleware, Event } from "./types";
-import { cmd_type_mapping, glob } from "./helpers";
+import { CommandType, glob } from "./helpers";
 import { handle_interaction } from "./handlers/builtin";
 import { readFile } from "fs/promises";
 import _ from "lodash";
@@ -84,14 +84,14 @@ async function initialize_commands() {
             await this._client.application?.commands.create({
                 name: command_data.name,
                 description: command_data.type === "CHAT_INPUT" ? command_data.description : "",
-                type: cmd_type_mapping(command_data.type),
+                type: CommandType[command_data.type],
                 options: command_data.options
             });
         } else {
             const command_fmt = {
                 name: command_data.name,
                 description: command_data.type === "CHAT_INPUT" ? command_data.description : "",
-                type: cmd_type_mapping(command_data.type),
+                type: CommandType[command_data.type],
                 options: command_data.options
             };
 

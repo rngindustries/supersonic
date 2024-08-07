@@ -12,40 +12,20 @@ export async function glob(pattern: string | string[], options?: GlobOptions) {
     return await _glob(pattern);
 }
 
-export function cmd_type_mapping(type: string): number {
-    switch (type) {
-        case "CHAT_INPUT":
-            return 1;
-        case "USER":
-            return 2;
-        case "MESSAGE":
-            return 3;
-        default:
-            return -1;
-    }
+export declare enum CommandType {
+    CHAT_INPUT = 1,
+    USER = 2,
+    MESSAGE = 3
 }
 
-export function opt_type_mapping(type: string): number {
-    switch (type) {
-        case "str":
-            return 3;
-        case "int": 
-            return 4;
-        case "bool":
-            return 5;
-        case "user":
-            return 6;
-        case "ch":
-            return 7;
-        case "role":
-            return 8;
-        case "ment":
-            return 9;
-        case "num":
-            return 10;
-        case "att":
-            return 11;
-        default:
-            return -1;
-    }
+export declare enum OptionType {
+    "str" = 3,
+    "int" = 4,
+    "bool" = 5,
+    "user" = 6,
+    "ch" = 7,
+    "role" = 8,
+    "ment" = 9,
+    "num" = 10,
+    "att" = 11
 }

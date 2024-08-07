@@ -6,7 +6,7 @@ import {
     CommandExecutor, 
     CommandMiddleware
 } from "../types";
-import { opt_type_mapping } from "../helpers";
+import { OptionType } from "../helpers";
 
 export function parse_command(command: string) {
     let output: CommandData = {
@@ -47,7 +47,7 @@ export function parse_command(command: string) {
             if (opt && opt.groups) {
                 let required: boolean = (command_option[0] === "<" ? true : false);
                 let name: string = opt.groups["name"] ?? "";
-                let type: number = opt_type_mapping(opt.groups["type"] ?? "");
+                let type: number = OptionType[opt.groups["type"] as keyof typeof OptionType];
                 
                 let option: CommandDataOption = {
                     name: name,
