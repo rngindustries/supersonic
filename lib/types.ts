@@ -1,5 +1,6 @@
 import { 
     ChatInputCommandInteraction,
+    ClientEvents,
     ClientOptions as DiscordClientOptions,
     MessageContextMenuCommandInteraction,
     UserContextMenuCommandInteraction,
@@ -46,11 +47,18 @@ export interface CommandDataOption {
     max_value?: number;
 }
 
+export interface Event<E extends keyof ClientEvents> {
+    name: string;
+    alias: string;
+    once: boolean;
+    execute: (...args: ClientEvents[E]) => void;
+}
+
 export interface ClientOptions extends DiscordClientOptions {
     environment: string;
     module: boolean;
     command_directory?: string;
-    events_directory?: string;
+    event_directory?: string;
     middleware_directory?: string;
     static_directory?: string;
     emojis?: { [name: string]: string };
