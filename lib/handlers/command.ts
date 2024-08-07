@@ -7,13 +7,14 @@ import {
     CommandMiddleware
 } from "../types";
 import { OptionType } from "../helpers";
+import { ApplicationCommandType } from "discord.js";
 
 export function parse_command(command: string) {
     let output: CommandData = {
         name: "base-command",
         description: "No description provided",
         global: true,
-        type: "CHAT_INPUT",
+        type: ApplicationCommandType.ChatInput,
         options: []
     };
 
@@ -34,9 +35,9 @@ export function parse_command(command: string) {
         if (guild)
             output.global = false;
         if (type === "u")
-            output.type = "USER";
+            output.type = ApplicationCommandType.User;
         if (type === "m")
-            output.type = "MESSAGE";
+            output.type = ApplicationCommandType.Message;
         output.name = name;
     }
 

@@ -3,6 +3,7 @@ import {
     APIButtonComponent,
     APIEmbed,
     APIMessage,
+    ApplicationCommandType,
     ChatInputCommandInteraction,
     ClientEvents,
     ClientOptions as DiscordClientOptions,
@@ -24,7 +25,8 @@ export interface CommandData {
     description: string;
     category?: string;
     global: boolean;
-    type: "CHAT_INPUT" | "USER" | "MESSAGE";
+    type: ApplicationCommandType;
+    // type: "CHAT_INPUT" | "USER" | "MESSAGE";
     options: CommandDataOption[];
 }
 
