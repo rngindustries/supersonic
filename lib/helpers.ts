@@ -12,13 +12,13 @@ export async function glob(pattern: string | string[], options?: GlobOptions) {
     return await _glob(pattern);
 }
 
-export declare enum CommandType {
+export enum CommandType {
     CHAT_INPUT = 1,
     USER = 2,
     MESSAGE = 3
 }
 
-export declare enum OptionType {
+export enum OptionType {
     "str" = 3,
     "int" = 4,
     "bool" = 5,
