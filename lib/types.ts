@@ -1,7 +1,12 @@
 import { 
+    APIActionRowComponent,
+    APIButtonComponent,
+    APIEmbed,
+    APIMessage,
     ChatInputCommandInteraction,
     ClientEvents,
     ClientOptions as DiscordClientOptions,
+    Message,
     MessageContextMenuCommandInteraction,
     UserContextMenuCommandInteraction,
 } from "discord.js";
@@ -66,4 +71,21 @@ export interface ClientOptions extends DiscordClientOptions {
     guilds?: { [name: string]: string };
     use_directory_as_category?: boolean;
     default_category?: string;
+    timeout?: number;
+}
+
+export interface DynamicPaginationOptions {
+    interaction: SlashCommandInteraction;
+    embed_options: APIEmbed;
+    max_pages: number;  
+    timeout?: number;
+    on_initial: (
+        embed: APIEmbed, 
+        row: APIActionRowComponent<APIButtonComponent>
+    ) => Promise<APIMessage | Message>;
+    on_page_change: (
+        embed: APIEmbed,
+        row: APIActionRowComponent<APIButtonComponent>, 
+        page: number
+    ) => void;
 }
