@@ -7,24 +7,26 @@ import {
     SlashCommandMiddleware,
     UserContextMenuCommandMiddleware 
 } from "../types";
+import { run_command_executor } from "./builtin";
  
 export function use(middleware_fn: CommandMiddleware) {
     this.middleware.push(middleware_fn);
 }
 
-export function handle_middleware(interaction: SlashCommandInteraction, command?: Command) {
-    let middlewares: CommandMiddleware[];
-    if (command)
-        middlewares = command.middleware;
-    else 
-        middlewares = this.middleware;
+export function handle_middleware(interaction: SlashCommandInteraction, command: Command) {
+    let middlewares: CommandMiddleware[] = this.middleware || [];
     let step = 0;
 
+    if (command.middleware)
+        middlewares.push(...command.middleware);
+    
     function next() {
         step++;
         
         if (step < middlewares.length)
             run_middleware(interaction, middlewares[step] as CommandMiddleware, next);
+        else 
+            run_command_executor(interaction, command);
     }
 
     if (middlewares.length !== 0)
