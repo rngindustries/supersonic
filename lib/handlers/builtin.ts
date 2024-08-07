@@ -1,4 +1,11 @@
-import { ChatInputCommandExecutor, Command, MessageContextMenuCommandExecutor, SlashCommandExecutor, SlashCommandInteraction, UserContextMenuCommandExecutor } from "../types";
+import { 
+    ChatInputCommandExecutor, 
+    Command, 
+    MessageContextMenuCommandExecutor, 
+    SlashCommandExecutor, 
+    SlashCommandInteraction, 
+    UserContextMenuCommandExecutor 
+} from "../types";
 import { handle_middleware } from "./middleware";
 
 export function handle_interaction(interaction: SlashCommandInteraction) {

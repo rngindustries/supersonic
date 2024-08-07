@@ -1,4 +1,12 @@
-import { ChatInputCommandMiddleware, Command, CommandMiddleware, MessageContextMenuCommandMiddleware, SlashCommandInteraction, SlashCommandMiddleware, UserContextMenuCommandMiddleware } from "../types";
+import { 
+    ChatInputCommandMiddleware, 
+    Command, 
+    CommandMiddleware, 
+    MessageContextMenuCommandMiddleware, 
+    SlashCommandInteraction, 
+    SlashCommandMiddleware,
+    UserContextMenuCommandMiddleware 
+} from "../types";
  
 export function use(middleware_fn: CommandMiddleware) {
     this.middleware.push(middleware_fn);
