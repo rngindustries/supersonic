@@ -75,11 +75,14 @@ export interface ClientOptions extends DiscordClientOptions {
     timeout?: number;
 }
 
-export interface DynamicPaginationOptions {
+export interface BasePaginationOptions {
     interaction: SlashCommandInteraction;
+    timeout?: number;
+}
+
+export interface DynamicPaginationOptions extends BasePaginationOptions {
     embed_options: APIEmbed;
     max_pages: number;  
-    timeout?: number;
     on_initial: (
         embed: APIEmbed, 
         row: APIActionRowComponent<APIButtonComponent>
@@ -89,4 +92,22 @@ export interface DynamicPaginationOptions {
         row: APIActionRowComponent<APIButtonComponent>, 
         page: number
     ) => void;
+}
+
+export interface ListPaginationOptions<T> extends BasePaginationOptions {
+    embed_options: APIEmbed;
+    max_pages?: number;
+    amount_per_page: number;
+    list_name: string;
+    list: T[];
+    inline?: string;
+}
+
+export interface StringListPaginationOptions<T> extends BasePaginationOptions {
+    max_pages?: number;
+    amount_per_page: number;
+    list_name?: string;
+    list: T[];
+    inline?: string;
+    formatting?: `${string}\${entry_name}${string}\${entries}${string}` | `${string}\${entries}\${string}`;
 }
