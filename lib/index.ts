@@ -1,6 +1,7 @@
 import * as client from "./client";
 import * as handlers from "./handlers";
 import * as message from "./message";
+import * as utils from "./utils";
 import { Command, CommandMiddleware, Event } from "./types";
 import { ClientEvents } from "discord.js";
 
@@ -11,5 +12,6 @@ export default {
     categories: new Set<string>(),
     ...client,
     ...handlers,
-    ...message
+    ...message,
+    ...utils
 };
