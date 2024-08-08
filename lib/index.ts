@@ -1,7 +1,5 @@
 import * as client from "./client";
-import * as command from "./handlers/command";
-import * as middleware from "./handlers/middleware";
-import * as event from "./handlers/event";
+import * as handlers from "./handlers";
 import * as message from "./message";
 import { Command, CommandMiddleware, Event } from "./types";
 import { ClientEvents } from "discord.js";
@@ -12,8 +10,6 @@ export default {
     middleware: [] as CommandMiddleware[],
     categories: new Set<string>(),
     ...client,
-    ...command,
-    ...event,
-    ...middleware,
-    ...message,
+    ...handlers,
+    ...message
 };
