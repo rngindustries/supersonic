@@ -1,12 +1,15 @@
 import { 
     APIActionRowComponent, 
     APIButtonComponent, 
+    APIEmbed, 
     ButtonStyle,
     ComponentType
 } from "discord.js";
 import { 
     DynamicPaginationOptions, 
     ListPaginationOptions, 
+    StaticPaginationOptions, 
+    StaticPaginator, 
     StringListPaginationOptions 
 } from "../types";
 
@@ -41,6 +44,11 @@ export async function paginate(options: DynamicPaginationOptions) {
     }
 
     const message = await on_initial(embed, row);
+   
+    // TODO: add warning indicating that pagination is unneeded here
+    if (options.max_pages === 1)
+        return;
+
     // TODO: handle interaction.channel === undefined error (likely solution: intents)
     const collector = interaction.channel?.createMessageComponentCollector({
         componentType: ComponentType.Button,
@@ -74,9 +82,90 @@ export async function paginate(options: DynamicPaginationOptions) {
 
         interaction.editReply({
             embeds: [embed],
-            components: options.max_pages === 1 ? undefined : [row]
+            components: [row]
         });
     })
+}
+
+export async function paginate_static(options: StaticPaginationOptions) {
+    let paginator = (async function() {
+        let page = 0;
+        let embeds = paginator.embeds;
+        const interaction = options.interaction;
+
+        const row: APIActionRowComponent<APIButtonComponent> = {
+            type: ComponentType.ActionRow,
+            components: [
+                {
+                    type: ComponentType.Button,
+                    custom_id: "previous_page",
+                    style: ButtonStyle.Primary,
+                    label: "Previous"
+                },
+                {
+                    type: ComponentType.Button,
+                    custom_id: "next_page",
+                    style: ButtonStyle.Primary,
+                    label: "Next"
+                }
+            ]
+        };
+        
+        // TODO: add proper error message
+        if (embeds.length === 0) 
+            return;
+
+        const message = await interaction.reply({
+            embeds: [embeds[0] as APIEmbed], 
+            components: embeds.length === 1 ? undefined : [row],
+            fetchReply: true
+        });
+
+        if (embeds.length === 1)
+            return;
+
+        const collector = interaction.channel?.createMessageComponentCollector({
+            componentType: ComponentType.Button,
+            dispose: true,
+            message: message,
+            time: options.timeout || this.timeout || 60000
+        });
+
+        collector?.on("collect", async (btn) => {
+            if (btn.user.id !== interaction.user.id) return;
+            
+            await btn.deferUpdate();
+
+            if (btn.customId === "previous_page") {
+                if (page <= 0) {
+                page = 0;
+                return; 
+                } 
+
+                page--;
+            } else if (btn.customId === "next_page") {
+                if (page >= embeds.length-1) {
+                    page = embeds.length-1;
+                    return;
+                }
+
+                page++;
+            }
+
+            interaction.editReply({
+                embeds: [embeds[page] as APIEmbed],
+                components: [row]
+            });
+        })
+    }).bind(this) as StaticPaginator;
+
+    paginator.embeds = options.embeds || [];
+    paginator.add_embed = ((embed: APIEmbed) => {
+        paginator.embeds.push(embed);
+        return paginator;
+    });
+
+    return paginator;
 }
 
 export async function paginate_list<T>(options: ListPaginationOptions<T>) {
@@ -131,6 +220,10 @@ export async function paginate_list<T>(options: ListPaginationOptions<T>) {
         components: max_pages === 1 ? undefined : [row],
         fetchReply: true
     });
+
+    if (max_pages === 1)
+        return;
+
     const collector = interaction.channel?.createMessageComponentCollector({
         componentType: ComponentType.Button,
         dispose: true,
@@ -171,7 +264,7 @@ export async function paginate_list<T>(options: ListPaginationOptions<T>) {
 
         interaction.editReply({
             embeds: [embed],
-            components: max_pages === 1 ? undefined : [row]
+            components: [row]
         });
     })
 }
@@ -228,6 +321,10 @@ export async function paginate_list_str<T>(options: StringListPaginationOptions<
         components: max_pages === 1 ? undefined : [row],
         fetchReply: true
     });
+
+    if (max_pages === 1)
+        return;
+
     const collector = interaction.channel?.createMessageComponentCollector({
         componentType: ComponentType.Button,
         dispose: true,
@@ -270,7 +367,7 @@ export async function paginate_list_str<T>(options: StringListPaginationOptions<
 
         interaction.editReply({
             content: content,
-            components: max_pages === 1 ? undefined : [row]
+            components: [row]
         });
     })
 }

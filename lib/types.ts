@@ -94,6 +94,16 @@ export interface DynamicPaginationOptions extends BasePaginationOptions {
     ) => void;
 }
 
+export interface StaticPaginationOptions extends BasePaginationOptions {
+    embeds?: APIEmbed[];
+}
+
+export interface StaticPaginator {
+    (): Promise<void>;
+    embeds: APIEmbed[];
+    add_embed: (embed: APIEmbed) => this;
+}
+
 export interface ListPaginationOptions<T> extends BasePaginationOptions {
     embed_options: APIEmbed;
     max_pages?: number;
