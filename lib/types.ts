@@ -26,7 +26,6 @@ export interface CommandData {
     category?: string;
     global: boolean;
     type: ApplicationCommandType;
-    // type: "CHAT_INPUT" | "USER" | "MESSAGE";
     options: CommandDataOption[];
 }
 
