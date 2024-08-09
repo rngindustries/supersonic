@@ -9,13 +9,13 @@ import {
 import { OptionType } from "../helpers";
 import { ApplicationCommandType } from "discord.js";
 
-export function parse_command(command: string) {
+export function parse_command(command: string): CommandData {
     let output = {} as CommandData;
 
     output.type = ApplicationCommandType.ChatInput;
     output.options = [];
 
-    let tokens = /^([gump]{0,4}\/(?:[\w-]+|\([\w\s-]+\)))((?:\s(?:\[|<)[\w-]+\:(?:str|int|num|bool|user|ch|role|ment|att)(?:\:(?:v|\^)\d+)*(?:\]|>))*)(\s\((?:[\w.]+=[^|]+\|?)+\))?$/.exec(command);
+    let tokens = /^([gump]{0,3}\/(?:[\w-]+|\([\w\s-]+\)))((?:\s(?:\[|<)[\w-]+\:(?:str|int|num|bool|user|ch|role|ment|att)(?:\:(?:v|\^)\d+)*(?:\]|>))*)(\s\((?:[\w.]+=[^|]+\|?)+\))?$/.exec(command);
     
     if (!tokens) {
         return output;
