@@ -10,77 +10,82 @@ import { OptionType } from "../helpers";
 import { ApplicationCommandType } from "discord.js";
 
 export function parse_command(command: string) {
-    let output: CommandData = {
-        name: "base-command",
-        description: "No description provided",
-        global: true,
-        type: ApplicationCommandType.ChatInput,
-        options: []
-    };
+    let output = {} as CommandData;
 
-    let tokens = /^(?<command_data>[\w\-\/]+)\s?(?<command_options>(?:(\[|<)[\w:-]+(\]|>)\s?)*)(?:\((?<command_externals>(?:\$\d=.+,?)+)\))?$/.exec(command);
+    output.type = ApplicationCommandType.ChatInput;
+    output.options = [];
+
+    let tokens = /^([gump]{0,4}\/(?:[\w-]+|\([\w\s-]+\)))((?:\s(?:\[|<)[\w-]+\:(?:str|int|num|bool|user|ch|role|ment|att)(?:\:(?:v|\^)\d+)*(?:\]|>))*)(\s\((?:[\w.]+=[^|]+\|?)+\))?$/.exec(command);
     
-    if (!tokens || !tokens.groups) return output;
+    if (!tokens) {
+        return output;
+    }
+
+    let data = tokens[1] as string; 
+    let options = tokens[2]?.trim()?.split(" ");
+    let externals = tokens[3]?.trim().substring(1, tokens[3].length-1).split("|");
     
-    const command_data: string = tokens.groups["command_data"] as string; 
-    const command_options = tokens.groups["command_options"]?.trim()?.split(" ");
-    const command_externals = tokens.groups["command_externals"]?.split(",");
-    
-    let data = /^(?<guild>g)?(?<type>u|m)?\/(?<name>[\w-]+)$/.exec(command_data);
-    if (data && data.groups) {
-        let guild = data.groups["guild"];
-        let type = data.groups["type"];
-        let name: string = data.groups["name"] ?? "";
-        
-        if (guild)
+    let extracted = /^(g)?(u|m)?(p)?\/([\w-]+|\([\w\s-]+\))$/.exec(data);
+    if (extracted) {
+        let global = extracted[1];
+        let type = extracted[2];
+        let name = extracted[4] as string;
+
+        if (global)
             output.global = false;
         if (type === "u")
             output.type = ApplicationCommandType.User;
         if (type === "m")
             output.type = ApplicationCommandType.Message;
-        output.name = name;
+        
+        if (name.startsWith("("))
+            output.name = name.substring(1, name.length-1);
+        else
+            output.name = name;
     }
-
-    if (command_options) {
-        for (const command_option of command_options) {
-            let opt = /^(?<name>[\w-]+):(?<type>str|int|num|bool|user|ch|role|ment|att)(?::(?<max_value>\^\d+))?(?::(?<min_value>v\d+))?$/.exec(command_option.substring(1, command_option.length-1));
+    
+    if (options) {
+        for (const option of options) {
+            let option_fragments = /^([\w-]+):(str|int|num|bool|user|ch|role|ment|att)(?:(?::(\^\d+))|(?::(v\d+))){0,2}$/.exec(option.substring(1, option.length-1));
             
-            if (opt && opt.groups) {
-                let required: boolean = (command_option[0] === "<" ? true : false);
-                let name: string = opt.groups["name"] ?? "";
-                let type: number = OptionType[opt.groups["type"] as keyof typeof OptionType];
-                
-                let option: CommandDataOption = {
-                    name: name,
-                    description: "No description provided",
-                    type: type,
-                    required: required
-                };
+            if (option_fragments) {
+                let command_option = {} as CommandDataOption;
 
-                if (opt.groups["max_value"]) 
-                    option.max_value = parseInt(opt.groups["max_value"].substring(1));
-                if (opt.groups["min_value"])
-                    option.min_value = parseInt(opt.groups["min_value"].substring(1));
+                command_option.description = "No description provided";
+                command_option.required = option[0] === "<" ? true : false;
+                command_option.name = option_fragments[1] as string;
+                command_option.type = OptionType[option_fragments[2] as keyof typeof OptionType];
 
-                output.options.push(option);
+                if (command_option.type === OptionType.str || command_option.type === OptionType.int) {
+                    if (option_fragments[3]) 
+                        command_option.max_value = parseInt(option_fragments[3].substring(1));
+                    if (option_fragments[4])
+                        command_option.min_value = parseInt(option_fragments[4].substring(1));
+                }
+
+                output.options.push(command_option);
             }
         }
     }
 
-    if (command_externals) {
-        for (const command_external of command_externals) {
-            let delim_pos = command_external.indexOf("=");
-            
+    if (externals) {
+        for (const external of externals) {
+            let delim_pos = external.indexOf("=");
+
             if (delim_pos !== -1) {
-                let external_pos = parseInt(command_external.substring(0, delim_pos).substring(1));
-                let external_text = command_external.substring(delim_pos+1);
-                
-                if (external_pos === 0) {
-                    output.category = external_text;
-                } else if (external_pos === 1) {
-                    output.description = external_text;
-                } else if (output.options[external_pos-2]) { 
-                    (output.options[external_pos-2] as CommandDataOption).description = external_text;
+                let type = external.substring(0, delim_pos).trim();
+                let text = external.substring(delim_pos+1);
+
+                if (type === "cat") {
+                    output.category = text;
+                } else if (type.endsWith("dsc")) {
+                    if (type === "cmd.dsc") {
+                        output.description = text;
+                    } else {
+                        (output.options[
+                            output.options.findIndex(opt => opt.name === type.substring(0, type.length-4))
+                        ] as CommandDataOption).description = text;
+                    }
                 }
             } 
         }
