@@ -1,4 +1,5 @@
-import { DefaultResponses } from "../helpers";
+import { ApplicationCommandType } from "discord.js";
+import { Defaults } from "../helpers";
 import { 
     ChatInputCommandExecutor, 
     Command, 
@@ -11,20 +12,31 @@ import {
 export function handle_interaction(interaction: SlashCommandInteraction) {
     if (interaction.isCommand()) {
         const command_name = interaction.commandName;
-        const command = this.commands.get(command_name) as Command;
+        let command: Command;
+        switch (interaction.commandType) {
+            case ApplicationCommandType.ChatInput:
+                command = this.commands.chat.get(command_name) as Command;
+                break;
+            case ApplicationCommandType.User:
+                command = this.commands.user.get(command_name) as Command;
+                break;
+            case ApplicationCommandType.Message:
+                command = this.commands.message.get(command_name) as Command;
+                break;
+        }
 
         if (command === undefined) {
-            interaction.reply(DefaultResponses.COMMAND_NOT_FOUND);
+            interaction.reply(Defaults.COMMAND_NOT_FOUND);
             return;
         }
 
         try {
             if (this.middleware.length !== 0 || command.middleware.length !== 0)
                 this.handle_middleware(interaction, command);
-            else
+            else 
                 run_command_executor(interaction, command);
         } catch (err) {
-            interaction.reply(DefaultResponses.UNEXPECTED_ERROR);
+            interaction.reply(Defaults.UNEXPECTED_ERROR);
 
             console.log(err);
         }
@@ -33,17 +45,26 @@ export function handle_interaction(interaction: SlashCommandInteraction) {
 
 export function run_command_executor(interaction: SlashCommandInteraction, command: Command) {
     switch (interaction.commandType) {
-        case 1:
-            (command.execute as ChatInputCommandExecutor)(interaction);
+        case ApplicationCommandType.ChatInput:
+            let group = interaction.options.getSubcommandGroup(false);
+            let subcommand = interaction.options.getSubcommand(false);
+
+            if (group && subcommand) {
+                (command.execute[`${group}:${subcommand}`] as ChatInputCommandExecutor)(interaction);
+            } else if (!group && subcommand) {
+                (command.execute[`${subcommand}`] as ChatInputCommandExecutor)(interaction);
+            } else {
+                (command.execute["(main)"] as ChatInputCommandExecutor)(interaction);
+            }
             break;
-        case 2:
-            (command.execute as UserContextMenuCommandExecutor)(interaction);
+        case ApplicationCommandType.User:
+            (command.execute["(main)"] as UserContextMenuCommandExecutor)(interaction);
             break;
-        case 3:
-            (command.execute as MessageContextMenuCommandExecutor)(interaction);
+        case ApplicationCommandType.Message:
+            (command.execute["(main)"] as MessageContextMenuCommandExecutor)(interaction);
             break;
         default:
-            (command.execute as SlashCommandExecutor)(interaction);
+            (command.execute["(main)"] as SlashCommandExecutor)(interaction);
             break;
     }
 }

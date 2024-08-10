@@ -6,16 +6,23 @@ import {
     CommandExecutor, 
     CommandMiddleware
 } from "../types";
-import { DefaultResponses, OptionType } from "../helpers";
+import { Defaults, handle_subcommand, OptionType } from "../helpers";
 import { ApplicationCommandType } from "discord.js";
 
 export function module(command: string, ...callbacks: CommandCallbacks): Command {
     let command_module = {} as Command;
 
     command_module.command = parse_command(command);
+    let subcommand = handle_subcommand.call(this, command_module);
+
     command_module.middleware = callbacks.slice(0, callbacks.length-1) as CommandMiddleware[];
-    command_module.execute = callbacks[callbacks.length-1] as CommandExecutor;
-    
+    command_module.execute = {};
+    if (subcommand) {
+        command_module.execute[subcommand] = callbacks[callbacks.length-1] as CommandExecutor;
+    } else {
+        command_module.execute["(main)"] = callbacks[callbacks.length-1] as CommandExecutor;
+    }
+
     return command_module;
 }
 
@@ -23,8 +30,15 @@ export function attach(command: string, ...callbacks: CommandCallbacks): void {
     let command_module = {} as Command;
 
     command_module.command = parse_command(command);
+    let subcommand = handle_subcommand.call(this, command_module);
+    
     command_module.middleware = callbacks.slice(0, callbacks.length-1) as CommandMiddleware[];
-    command_module.execute = callbacks[callbacks.length-1] as CommandExecutor;
+    command_module.execute = {};
+    if (subcommand) {
+        command_module.execute[subcommand] = callbacks[callbacks.length-1] as CommandExecutor;
+    } else {
+        command_module.execute["(main)"] = callbacks[callbacks.length-1] as CommandExecutor;
+    }
 
     if (!command_module.command.category)
         command_module.command.category = this.opts.default_category || "general";
@@ -35,7 +49,7 @@ export function attach(command: string, ...callbacks: CommandCallbacks): void {
 export function parse_command(command: string): CommandData {
     let output = {} as CommandData;
 
-    output.description = DefaultResponses.NO_DESCRIPTION_PROVIDED;
+    output.description = Defaults.NO_DESCRIPTION_PROVIDED;
     output.type = ApplicationCommandType.ChatInput;
     output.options = [];
 
@@ -47,7 +61,7 @@ export function parse_command(command: string): CommandData {
         return output;
     }
 
-    let tokens = /^(p?\/(?:[\w-]{1,32}))((?:\s(?:\[|<)[\w-]{1,32}\:(?:str|int|num|bool|user|ch|role|ment|att)(?::v(?:\d+|-)\^(?:\d+|-))?(?:\]|>))*)(?:\s\(((?:[\w.]+=[^|]+\|?)+)\))?$/.exec(command);
+    let tokens = /^(p?\/(?:[\w-]{1,32})(?:\/[\w-]{1,32}(?:\/[\w-]{1,32})?)?)((?:\s(?:\[|<)[\w-]{1,32}\:(?:str|int|num|bool|user|ch|role|ment|att)(?::v(?:\d+|-)\^(?:\d+|-))?(?:\]|>))*)(?:\s\(((?:[\w.]+=[^|]+\|?)+)\))?$/.exec(command);
     
     if (!tokens) {
         return output;
@@ -56,12 +70,18 @@ export function parse_command(command: string): CommandData {
     let data = tokens[1] as string; 
     let options = tokens[2]?.trim()?.split(" ");
     let externals = tokens[3]?.split("|") as string[];
-    
-    if (data.startsWith("p")) {
-        output.prefix = true;
-        output.name = data.substring(2);
-    } else {
-        output.name = data.substring(1);
+
+    let metadata = /^(p)?\/([\w-]{1,32})(?:\/([\w-]{1,32})(?:\/([\w-]{1,32}))?)?$/.exec(data);
+    if (metadata) {
+        output.prefixed = !!metadata[1];
+        output.name = metadata[2] as string;
+
+        if (metadata[3] && !metadata[4]) {
+            output.subcommand = metadata[3];
+        } else if (metadata[3] && metadata[4]) {
+            output.subcommand_group = metadata[3];
+            output.subcommand = metadata[4];
+        }
     }
 
     if (options) {
@@ -71,18 +91,24 @@ export function parse_command(command: string): CommandData {
             if (option_fragments) {
                 let command_option = {} as CommandDataOption;
 
-                command_option.description = DefaultResponses.NO_DESCRIPTION_PROVIDED;
+                command_option.description = Defaults.NO_DESCRIPTION_PROVIDED;
                 command_option.required = option[0] === "<" ? true : false;
                 command_option.name = option_fragments[1] as string;
                 command_option.type = OptionType[option_fragments[2] as keyof typeof OptionType];
 
-                if (command_option.type === OptionType.str || command_option.type === OptionType.int) {
-                    if (option_fragments[3] && option_fragments[3] !== "-")
+                if (option_fragments[3] && option_fragments[3] !== "-") {
+                    if (command_option.type === OptionType.str)
+                        command_option.min_length = parseInt(option_fragments[3]);
+                    else if (command_option.type === OptionType.num || command_option.type === OptionType.int)
                         command_option.min_value = parseInt(option_fragments[3]);
-                    if (option_fragments[4] && option_fragments[4] !== "-") 
+                } 
+                if (option_fragments[4] && option_fragments[4] !== "-") {
+                    if (command_option.type === OptionType.str)
+                        command_option.max_length = parseInt(option_fragments[4]);
+                    else if (command_option.type === OptionType.num || command_option.type === OptionType.int)
                         command_option.max_value = parseInt(option_fragments[4]);
                 }
-
+                
                 output.options.push(command_option);
             }
         }
@@ -107,6 +133,10 @@ function parse_externals(output: CommandData, externals: string[]) {
             } else if (type.endsWith("dsc")) {
                 if (type === "cmd.dsc") {
                     output.description = text;
+                } else if (type === "sub.dsc") {
+                    output.sub_description = text;
+                } else if (type === "grp.dsc") {
+                    output.group_description = text;
                 } else {
                     (output.options[
                         output.options.findIndex(opt => opt.name === type.substring(0, type.length-4))

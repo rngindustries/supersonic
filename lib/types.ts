@@ -14,19 +14,41 @@ import {
 
 export type SlashCommandInteraction = | ChatInputCommandInteraction | MessageContextMenuCommandInteraction | UserContextMenuCommandInteraction;
 
+export interface CommandList {
+    chat: Map<string, Command>;
+    user: Map<string, Command>;
+    message: Map<string, Command>;
+}
+
 export interface Command {
     command: CommandData;
     middleware: CommandMiddleware[];
-    execute: CommandExecutor;
+    execute: { [key: string]: CommandExecutor };
 }
 
 export interface CommandData {
     name: string;
     description: string;
     category?: string;
-    prefix?: boolean;
+    prefixed?: boolean;
+    subcommand_group?: string;
+    subcommand?: string;
+    group_description?: string;
+    sub_description?: string;
     type: ApplicationCommandType;
     options: CommandDataOption[];
+}
+
+export interface CommandDataOption {
+    name: string;
+    description: string;
+    type: number;
+    required: boolean;
+    min_value?: number;
+    max_value?: number;
+    min_length?: number;
+    max_length?: number;
+    options?: CommandDataOption[];
 }
 
 export type ChatInputCommandMiddleware = (interaction: ChatInputCommandInteraction, next: () => void) => void;
@@ -43,15 +65,6 @@ export type CommandMiddleware = | ChatInputCommandMiddleware | MessageContextMen
 export type CommandExecutor = | ChatInputCommandExecutor | MessageContextMenuCommandExecutor | UserContextMenuCommandExecutor | SlashCommandExecutor;
 
 export type CommandCallbacks = [...CommandMiddleware[], CommandExecutor];
-
-export interface CommandDataOption {
-    name: string;
-    description: string;
-    type: number;
-    required: boolean;
-    min_value?: number;
-    max_value?: number;
-}
 
 export interface Event<E extends keyof ClientEvents> {
     name: string;

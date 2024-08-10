@@ -1,6 +1,17 @@
 import { resolve, dirname, basename } from "path";
-import { ApplicationCommand, ApplicationCommandType, Client, ClientEvents } from "discord.js";
-import { ClientOptions, Command, CommandData, CommandMiddleware, Event } from "./types";
+import { 
+    ApplicationCommand,  
+    ApplicationCommandType, 
+    Client, 
+    ClientEvents 
+} from "discord.js";
+import { 
+    ClientOptions, 
+    Command, 
+    CommandData,  
+    CommandMiddleware, 
+    Event 
+} from "./types";
 import { glob } from "./helpers";
 import { handle_interaction } from "./handlers/builtin";
 import { readFile } from "fs/promises";
@@ -66,60 +77,77 @@ async function initialize_commands() {
                     command_data.category = this.opts.default_category || "general";
             }
 
-            this.commands.set(command_data.name, command_module);
+            switch (command_data.type) {
+                case ApplicationCommandType.ChatInput:
+                    this.commands.chat.set(command_data.name, command_module);
+                    break;
+                case ApplicationCommandType.Message:
+                    this.commands.message.set(command_data.name, command_module);
+                    break;
+                case ApplicationCommandType.User:
+                    this.commands.user.set(command_data.name, command_module);
+                    break;
+            }
         }
     }
 
     const slash_commands = await this._client.application?.commands.fetch();
 
-    for (const command of this.commands) {
-        let command_module: Command = command[1];
-        let command_data: CommandData = command_module.command as CommandData;
-        
-        this.categories.add(command_data.category ?? "general");
-
-        let defined_command: ApplicationCommand = slash_commands.find((cmd: ApplicationCommand) => cmd.name === command_data.name);
-
-        if (!defined_command) {
-            await this._client.application?.commands.create({
-                name: command_data.name,
-                description: command_data.type === ApplicationCommandType.ChatInput ? command_data.description : "",
-                type: command_data.type,
-                options: command_data.options
-            });
-        } else {
-            const command_fmt = {
-                name: command_data.name,
-                description: command_data.type === ApplicationCommandType.ChatInput ? command_data.description : "",
-                type: command_data.type,
-                options: command_data.options
-            };
-
-            const defined_command_fmt = {
-                name: defined_command.name,
-                description: defined_command.description,
-                type: defined_command.type,
-                options: defined_command.options.map(opt => {
-                    // https://github.com/monkeytypegame/monkeytype-bot/blob/66a97ae4cb6c282c8dff1731af91c55d7cddb26c/src/structures/client.ts#L252
-                    type Keys = keyof typeof opt;
-                    type Values = typeof opt[Keys];
-                    type Entries = [Keys, Values];
-
-                    for (const [key, value] of Object.entries(opt) as Entries[]) {
-                        if (value === undefined || (Array.isArray(value) && value.length === 0)) {
-                            delete opt[key];
-                        }
-                    }
-
-                    return opt;
-                })
-            };
+    for (const type of ["chat", "message", "user"]) {
+        for (const command of this.commands[type]) {
+            let command_module: Command = command[1];
+            let command_data: CommandData = command_module.command as CommandData;
             
-            if (!_.isEqual(command_fmt, defined_command_fmt)) {
-                await this._client.application?.commands.edit(
-                    defined_command,
-                    command_fmt 
-                );
+            if (command_data.category && !this.categories.has(command_data.category)) 
+                this.categories.add(command_data.category);
+
+            let defined_command: ApplicationCommand = slash_commands.find(
+                (cmd: ApplicationCommand) => 
+                    cmd.name === command_data.name &&
+                    cmd.type === command_data.type
+            );
+
+            if (!defined_command) {
+                await this._client.application?.commands.create({
+                    name: command_data.name,
+                    description: command_data.type === ApplicationCommandType.ChatInput ? command_data.description : "",
+                    type: command_data.type,
+                    options: command_data.options
+                });
+            } else {
+                const command_fmt = {
+                    name: command_data.name,
+                    description: command_data.type === ApplicationCommandType.ChatInput ? command_data.description : "",
+                    type: command_data.type,
+                    options: command_data.options
+                };
+
+                const defined_command_fmt = {
+                    name: defined_command.name,
+                    description: defined_command.description,
+                    type: defined_command.type,
+                    options: defined_command.options.map(opt => {
+                        // https://github.com/monkeytypegame/monkeytype-bot/blob/66a97ae4cb6c282c8dff1731af91c55d7cddb26c/src/structures/client.ts#L252
+                        type Keys = keyof typeof opt;
+                        type Values = typeof opt[Keys];
+                        type Entries = [Keys, Values];
+
+                        for (const [key, value] of Object.entries(opt) as Entries[]) {
+                            if (value === undefined || (Array.isArray(value) && value.length === 0)) {
+                                delete opt[key];
+                            }
+                        }
+
+                        return opt;
+                    })
+                };
+                
+                if (!_.isEqual(command_fmt, defined_command_fmt)) {
+                    await this._client.application?.commands.edit(
+                        defined_command,
+                        command_fmt 
+                    );
+                }
             }
         }
     }
