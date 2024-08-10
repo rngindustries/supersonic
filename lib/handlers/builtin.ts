@@ -1,3 +1,4 @@
+import { DefaultResponses } from "../helpers";
 import { 
     ChatInputCommandExecutor, 
     Command, 
@@ -13,7 +14,7 @@ export function handle_interaction(interaction: SlashCommandInteraction) {
         const command = this.commands.get(command_name) as Command;
 
         if (command === undefined) {
-            interaction.reply("Could not find this command.");
+            interaction.reply(DefaultResponses.COMMAND_NOT_FOUND);
             return;
         }
 
@@ -23,7 +24,7 @@ export function handle_interaction(interaction: SlashCommandInteraction) {
             else
                 run_command_executor(interaction, command);
         } catch (err) {
-            interaction.reply("Unexpected error occurred. If you are the developer, please view the terminal.");
+            interaction.reply(DefaultResponses.UNEXPECTED_ERROR);
 
             console.log(err);
         }

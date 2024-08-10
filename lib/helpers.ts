@@ -1,15 +1,21 @@
 import { glob as _glob, GlobOptions } from "glob";
 
 export enum OptionType {
-    "str" = 3,
-    "int" = 4,
-    "bool" = 5,
-    "user" = 6,
-    "ch" = 7,
-    "role" = 8,
-    "ment" = 9,
-    "num" = 10,
-    "att" = 11
+    str = 3,
+    int = 4,
+    bool = 5,
+    user = 6,
+    ch = 7,
+    role = 8,
+    ment = 9,
+    num = 10,
+    att = 11
+}
+
+export enum DefaultResponses {
+    NO_DESCRIPTION_PROVIDED = "No description provided.",
+    COMMAND_NOT_FOUND = "The requested command does not exist.",
+    UNEXPECTED_ERROR = "An unexpected error has occurred! If you are the developer, please view your console."
 }
 
 export async function glob(pattern: string | string[], options?: GlobOptions) {
