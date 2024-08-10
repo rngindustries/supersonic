@@ -1,3 +1,3 @@
-export { module, attach } from "./command";
+export { module, attach, parse_command } from "./command";
 export { listener, listen } from "./event";
 export { use } from "./middleware";

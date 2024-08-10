@@ -24,7 +24,7 @@ export interface CommandData {
     name: string;
     description: string;
     category?: string;
-    global: boolean;
+    prefix?: boolean;
     type: ApplicationCommandType;
     options: CommandDataOption[];
 }
