@@ -18,11 +18,10 @@ export function module(command: string, ...callbacks: CommandCallbacks): Command
 
     command_module.middleware = callbacks.slice(0, callbacks.length-1) as CommandMiddleware[];
     command_module.execute = {};
-    if (subcommand) {
+    if (subcommand)
         command_module.execute[subcommand] = callbacks[callbacks.length-1] as CommandExecutor;
-    } else {
+    else
         command_module.execute["(main)"] = callbacks[callbacks.length-1] as CommandExecutor;
-    }
 
     return command_module;
 }
@@ -35,14 +34,10 @@ export function attach(command: string, ...callbacks: CommandCallbacks): void {
     
     command_module.middleware = callbacks.slice(0, callbacks.length-1) as CommandMiddleware[];
     command_module.execute = {};
-    if (subcommand) {
+    if (subcommand)
         command_module.execute[subcommand] = callbacks[callbacks.length-1] as CommandExecutor;
-    } else {
+    else
         command_module.execute["(main)"] = callbacks[callbacks.length-1] as CommandExecutor;
-    }
-
-    if (!command_module.command.category)
-        command_module.command.category = this.opts.default_category || "general";
 
     this.commands.set(command_module.command.name, command_module);
 }
