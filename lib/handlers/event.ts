@@ -1,6 +1,22 @@
 import { ClientEvents } from "discord.js";
 import { Event } from "../types";
 
+export function listen(event: string, callback: (...args: ClientEvents[keyof ClientEvents]) => void) {
+    let event_module = parse_event(event) as Event<keyof ClientEvents>;
+    
+    event_module.execute = callback;
+    
+    this.events.set(event_module.alias || event_module.name, event_module);
+}
+
+export function listener(event: string, callback: (...args: ClientEvents[keyof ClientEvents]) => void) {
+    let event_module = parse_event(event) as Event<keyof ClientEvents>;
+
+    event_module.execute = callback;
+
+    return event_module;
+}
+
 export function parse_event(event: string) {
     if (!event.startsWith("@")) return {};
     
@@ -22,20 +38,3 @@ export function parse_event(event: string) {
 
     return output;
 }
-
-export function listen(event: string, callback: (...args: ClientEvents[keyof ClientEvents]) => void) {
-    let event_module = parse_event(event) as Event<keyof ClientEvents>;
-    
-    event_module.execute = callback;
-    
-    this.events.set(event_module.alias || event_module.name, event_module);
-}
-
-export function listener(event: string, callback: (...args: ClientEvents[keyof ClientEvents]) => void) {
-    let event_module = parse_event(event) as Event<keyof ClientEvents>;
-
-    event_module.execute = callback;
-
-    return event_module;
-}
-
