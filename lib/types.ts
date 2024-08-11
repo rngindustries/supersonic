@@ -44,11 +44,19 @@ export interface CommandDataOption {
     description: string;
     type: number;
     required: boolean;
+    autocomplete: boolean;
+    choices?: Choice[];
     min_value?: number;
     max_value?: number;
     min_length?: number;
     max_length?: number;
+    channel_types?: number[];
     options?: CommandDataOption[];
+}
+
+export interface Choice {
+    name: string;
+    value: string | number;
 }
 
 export type ChatInputCommandMiddleware = (interaction: ChatInputCommandInteraction, next: () => void) => void;

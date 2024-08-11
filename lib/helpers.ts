@@ -14,6 +14,22 @@ export enum OptionType {
     att = 11
 }
 
+export enum ChannelType {
+    gt = 0,
+    dm = 1,
+    gv = 2,
+    gdm = 3,
+    gc = 4,
+    ga = 5,
+    at = 10,
+    put = 11,
+    prt = 12,
+    gsv = 13,
+    gd = 14,
+    gf = 15,
+    gm = 16
+}
+
 export enum Defaults {
     NO_DESCRIPTION_PROVIDED = "No description provided.",
     COMMAND_NOT_FOUND = "The requested command does not exist.",

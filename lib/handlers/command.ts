@@ -1,4 +1,5 @@
 import { 
+    Choice,
     Command,
     CommandCallbacks, 
     CommandData, 
@@ -6,7 +7,7 @@ import {
     CommandExecutor, 
     CommandMiddleware
 } from "../types";
-import { Defaults, handle_subcommand, OptionType } from "../helpers";
+import { ChannelType, Defaults, handle_subcommand, OptionType } from "../helpers";
 import { ApplicationCommandType } from "discord.js";
 
 export function module(command: string, ...callbacks: CommandCallbacks): Command {
@@ -61,7 +62,7 @@ export function parse_command(command: string): CommandData {
         return output;
     }
 
-    let tokens = /^(p?\/(?:[\w-]{1,32})(?:\/[\w-]{1,32}(?:\/[\w-]{1,32})?)?)((?:\s(?:\[|<)[\w-]{1,32}\:(?:str|int|num|bool|user|ch|role|ment|att)(?::v(?:\d+|-)\^(?:\d+|-))?(?:\]|>))*)(?:\s\(((?:[\w.]+=[^|]+\|?)+)\))?$/.exec(command);
+    let tokens = /^(p?\/(?:[\w-]{1,32})(?:\/[\w-]{1,32}(?:\/[\w-]{1,32})?)?)((?:\s(?:\[|<)[\w-]{1,32}\:(?:str|int|num|bool|user|ch|role|ment|att)(?::(?:v(?:\d+|-)\^(?:\d+|-)|(?:(?:gt|dm|gv|gdm|gc|ga|at|put|prt|gsv|gd|gf|gm),?){0,13}))?(?:\]|>))*)(?:\s\(((?:[\w.]+=[^|]+\|?)+)\))?$/.exec(command);
     
     if (!tokens) {
         return output;
@@ -86,12 +87,13 @@ export function parse_command(command: string): CommandData {
 
     if (options) {
         for (const option of options) {
-            let option_fragments = /^([\w-]{1,32}):(str|int|num|bool|user|ch|role|ment|att)(?::v(\d+|-)\^(\d+|-))?$/.exec(option.substring(1, option.length-1));
+            let option_fragments = /^([\w-]{1,32}):(str|int|num|bool|user|ch|role|ment|att)(?::(?:v(\d+|-)\^(\d+|-)|((?:(?:gt|dm|gv|gdm|gc|ga|at|put|prt|gsv|gd|gf|gm),?){0,13})))?(:ac)?$/.exec(option.substring(1, option.length-1));
             
             if (option_fragments) {
                 let command_option = {} as CommandDataOption;
 
                 command_option.description = Defaults.NO_DESCRIPTION_PROVIDED;
+                command_option.autocomplete = false;
                 command_option.required = option[0] === "<" ? true : false;
                 command_option.name = option_fragments[1] as string;
                 command_option.type = OptionType[option_fragments[2] as keyof typeof OptionType];
@@ -108,6 +110,22 @@ export function parse_command(command: string): CommandData {
                     else if (command_option.type === OptionType.num || command_option.type === OptionType.int)
                         command_option.max_value = parseInt(option_fragments[4]);
                 }
+
+                if (option_fragments[5] && command_option.type === OptionType.ch) {
+                    let channel_types = option_fragments[5].split(",").map(
+                        type => ChannelType[type as keyof typeof ChannelType]
+                    );
+
+                    command_option.channel_types = channel_types;
+                }
+
+                if (
+                    option_fragments[6] && 
+                    (command_option.type === OptionType.str || 
+                     command_option.type === OptionType.num ||
+                     command_option.type === OptionType.int)
+                ) 
+                    command_option.autocomplete = true;
                 
                 output.options.push(command_option);
             }
@@ -126,21 +144,43 @@ function parse_externals(output: CommandData, externals: string[]) {
 
         if (delim_pos !== -1) {
             let type = external.substring(0, delim_pos).trim();
-            let text = external.substring(delim_pos+1);
+            let value = external.substring(delim_pos+1);
 
             if (type === "cat") {
-                output.category = text;
+                output.category = value;
             } else if (type.endsWith("dsc")) {
                 if (type === "cmd.dsc") {
-                    output.description = text;
+                    output.description = value;
                 } else if (type === "sub.dsc") {
-                    output.sub_description = text;
+                    output.sub_description = value;
                 } else if (type === "grp.dsc") {
-                    output.group_description = text;
+                    output.group_description = value;
                 } else {
                     (output.options[
                         output.options.findIndex(opt => opt.name === type.substring(0, type.length-4))
-                    ] as CommandDataOption).description = text;
+                    ] as CommandDataOption).description = value;
+                }
+            } else if (type.endsWith("choi")) {
+                let choices = value.split(",").map(
+                    choice => {
+                        let [name, val] = choice.split(":");
+                       
+                        return {
+                            name: name,
+                            value: val
+                        } as Choice;
+                    }
+                );
+                let option = output.options[
+                    output.options.findIndex(opt => opt.name === type.substring(0, type.length-5))
+                ] as CommandDataOption;
+
+                if (
+                    [OptionType.str, OptionType.int, OptionType.num].includes(option.type) &&
+                    !option.autocomplete &&
+                    choices.length <= 25
+                ) {
+                    option.choices = choices;
                 }
             }
         } 
