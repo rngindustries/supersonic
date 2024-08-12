@@ -1,9 +1,17 @@
+import { 
+    Command, 
+    CommandList, 
+    CommandMiddleware,
+    Component, 
+    ComponentList, 
+    Event 
+} from "./types";
+import { ClientEvents } from "discord.js";
+
 import * as client from "./client";
 import * as handlers from "./handlers";
 import * as message from "./message";
 import * as utils from "./utils";
-import { Command, CommandList, CommandMiddleware, Event } from "./types";
-import { ClientEvents } from "discord.js";
 
 export default {
     commands: {
@@ -11,6 +19,9 @@ export default {
         user: new Map<string, Command>(),
         message: new Map<string, Command>()
     } as CommandList,
+    components: {
+        button: new Map<string, Component>()
+    } as ComponentList,
     events: new Map<string, Event<keyof ClientEvents>>(),
     middleware: [] as CommandMiddleware[],
     categories: new Set<string>(),

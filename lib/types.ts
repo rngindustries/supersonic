@@ -8,6 +8,7 @@ import {
     ClientEvents,
     ClientOptions as DiscordClientOptions,
     Message,
+    MessageComponentInteraction,
     MessageContextMenuCommandInteraction,
     UserContextMenuCommandInteraction,
 } from "discord.js";
@@ -81,13 +82,22 @@ export interface Event<E extends keyof ClientEvents> {
     execute: (...args: ClientEvents[E]) => void;
 }
 
+export interface ComponentList {
+    button: Map<string, Component>;
+}
+
+export interface Component {
+    name: string;
+    execute: (interaction: MessageComponentInteraction) => void;
+}
+
 export interface ClientOptions extends DiscordClientOptions {
     environment: string;
     module: boolean;
     command_directory?: string;
     event_directory?: string;
     middleware_directory?: string;
-    static_directory?: string;
+    component_directory?: string;
     emojis?: { [name: string]: string };
     channels?: { [name: string]: string };
     guilds?: { [name: string]: string };

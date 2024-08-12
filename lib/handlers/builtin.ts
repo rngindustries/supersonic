@@ -1,4 +1,4 @@
-import { ApplicationCommandType } from "discord.js";
+import { ApplicationCommandType, Interaction } from "discord.js";
 import { Defaults } from "../helpers";
 import { 
     ChatInputCommandExecutor, 
@@ -9,7 +9,7 @@ import {
     UserContextMenuCommandExecutor 
 } from "../types";
 
-export function handle_interaction(interaction: SlashCommandInteraction) {
+export function handle_interaction(interaction: Interaction) {
     if (interaction.isCommand()) {
         const command_name = interaction.commandName;
         let command: Command;
@@ -26,7 +26,10 @@ export function handle_interaction(interaction: SlashCommandInteraction) {
         }
 
         if (command === undefined) {
-            interaction.reply(Defaults.COMMAND_NOT_FOUND);
+            interaction.reply({
+                content: Defaults.COMMAND_NOT_FOUND,
+                ephemeral: true
+            });
             return;
         }
 
@@ -36,7 +39,28 @@ export function handle_interaction(interaction: SlashCommandInteraction) {
             else 
                 run_command_executor(interaction, command);
         } catch (err) {
-            interaction.reply(Defaults.UNEXPECTED_ERROR);
+            interaction.reply({
+                content: Defaults.UNEXPECTED_ERROR,
+                ephemeral: true
+            });
+
+            console.log(err);
+        }
+    } else if (interaction.isButton()) {
+        const custom_id = interaction.customId;
+        const [name] = custom_id.split("|");
+        const button = this.components.button.get(name);
+
+        if (button === undefined)
+            return;
+
+        try {
+            button.execute(interaction);
+        } catch (err) {
+            interaction.reply({
+                content: Defaults.UNEXPECTED_ERROR,
+                ephemeral: true
+            });
 
             console.log(err);
         }

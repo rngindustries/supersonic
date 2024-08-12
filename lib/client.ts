@@ -10,6 +10,7 @@ import {
     Command, 
     CommandData,  
     CommandMiddleware, 
+    Component, 
     Event 
 } from "./types";
 import { glob } from "./helpers";
@@ -49,11 +50,11 @@ export async function build(token: string) {
         return;
 
     await populate_middleware.call(this);
-    // init events before logging in for events like ready to properly register
+    await populate_components.call(this);
     await initialize_events.call(this);
-
-    await this._client.login(token);
     
+    await this._client.login(token);
+
     await initialize_commands.call(this);
 }
 
@@ -158,7 +159,6 @@ async function initialize_events() {
         const event_files = await glob(resolve(this.opts.event_directory, "**", "*.{ts,js}")) as string[];
         
         for (const event_file of event_files) {
-            // require: same reasoning as initialize_commands 
             let event_module: Event<keyof ClientEvents> = (require(event_file)).default || require(event_file);
 
             this.events.set(event_module.alias || event_module.name, event_module);
@@ -172,15 +172,26 @@ async function initialize_events() {
 }
 
 async function populate_middleware() {
-    if (this.opts.middleware_directory) {
+    if (this.opts.module && this.opts.middleware_directory) {
         const middleware_files = await glob(resolve(this.opts.middleware_directory, "**", "+*.{ts,js}")) as string[];
 
         for (const middleware_file of middleware_files) {
-            // require: same reasoning as initialize_commands
             let middleware: CommandMiddleware = (require(middleware_file)).default || require(middleware_file); 
             
             if (typeof middleware === "function")
                 this.middleware.push(middleware);
+        }
+    }
+}
+
+async function populate_components() {
+    if (this.opts.module && this.opts.component_directory) {
+        const component_files = await glob(resolve(this.opts.component_directory, "**", "*.{ts,js}")) as string[];
+
+        for (const component_file of component_files) {
+            let component: Component = (require(component_file)).default || require(component_file);
+            
+            this.components.button.set(component.name, component);
         }
     }
 }
