@@ -39,7 +39,17 @@ export function attach<T extends CommandInteraction>(command: string, ...callbac
     else
         command_module.execute["(main)"] = callbacks[callbacks.length-1] as CommandExecutor<T>;
 
-    this.commands.set(command_module.command.name, command_module);
+    switch (command_module.command.type) {
+        case ApplicationCommandType.ChatInput:
+            this.commands.chat.set(command_module.command.name, command_module);
+            break;
+        case ApplicationCommandType.Message:
+            this.commands.message.set(command_module.command.name, command_module);
+            break;
+        case ApplicationCommandType.User:
+            this.commands.user.set(command_module.command.name, command_module);
+            break;
+    }
 }
 
 export function parse_command(command: string): CommandData {
