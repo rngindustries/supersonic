@@ -6,6 +6,7 @@ import {
     ApplicationCommandType,
     ChatInputCommandInteraction,
     ClientEvents,
+    CommandInteraction,
     ClientOptions as DiscordClientOptions,
     Message,
     MessageComponentInteraction,
@@ -16,15 +17,15 @@ import {
 export type SlashCommandInteraction = | ChatInputCommandInteraction | MessageContextMenuCommandInteraction | UserContextMenuCommandInteraction;
 
 export interface CommandList {
-    chat: Map<string, Command>;
-    user: Map<string, Command>;
-    message: Map<string, Command>;
+    chat: Map<string, Command<ChatInputCommandInteraction>>;
+    user: Map<string, Command<UserContextMenuCommandInteraction>>;
+    message: Map<string, Command<MessageContextMenuCommandInteraction>>;
 }
 
-export interface Command {
+export interface Command<T extends CommandInteraction> {
     command: CommandData;
-    middleware: CommandMiddleware[];
-    execute: { [key: string]: CommandExecutor };
+    middleware: CommandMiddleware<T>[];
+    execute: { [key: string]: CommandExecutor<T> };
 }
 
 export interface CommandData {
@@ -60,20 +61,10 @@ export interface Choice {
     value: string | number;
 }
 
-export type ChatInputCommandMiddleware = (interaction: ChatInputCommandInteraction, next: () => void) => void;
-export type MessageContextMenuCommandMiddleware = (interaction: MessageContextMenuCommandInteraction, next: () => void) => void;
-export type UserContextMenuCommandMiddleware = (interaction: UserContextMenuCommandInteraction, next: () => void) => void;
-export type SlashCommandMiddleware = (interaction: SlashCommandInteraction, next: () => void) => void;
+export type CommandMiddleware<T extends CommandInteraction = SlashCommandInteraction> = (interaction: T, next: () => void) => void;
+export type CommandExecutor<T extends CommandInteraction = SlashCommandInteraction> = (interaction: T) => void;
 
-export type ChatInputCommandExecutor = (interaction: ChatInputCommandInteraction) => void;
-export type MessageContextMenuCommandExecutor = (interaction: MessageContextMenuCommandInteraction) => void;
-export type UserContextMenuCommandExecutor = (interaction: UserContextMenuCommandInteraction) => void;
-export type SlashCommandExecutor = (interaction: SlashCommandInteraction) => void; 
-
-export type CommandMiddleware = | ChatInputCommandMiddleware | MessageContextMenuCommandMiddleware | UserContextMenuCommandMiddleware | SlashCommandMiddleware;
-export type CommandExecutor = | ChatInputCommandExecutor | MessageContextMenuCommandExecutor | UserContextMenuCommandExecutor | SlashCommandExecutor;
-
-export type CommandCallbacks = [...CommandMiddleware[], CommandExecutor];
+export type CommandCallbacks<T extends CommandInteraction> = [...CommandMiddleware<T>[], CommandExecutor<T>];
 
 export interface Event<E extends keyof ClientEvents> {
     name: string;

@@ -1,20 +1,13 @@
-import { 
-    ChatInputCommandMiddleware, 
-    Command, 
-    CommandMiddleware, 
-    MessageContextMenuCommandMiddleware, 
-    SlashCommandInteraction, 
-    SlashCommandMiddleware,
-    UserContextMenuCommandMiddleware 
-} from "../types";
+import { CommandInteraction } from "discord.js";
+import { Command, CommandMiddleware } from "../types";
 import { run_command_executor } from "./builtin";
  
-export function use(middleware_fn: CommandMiddleware) {
+export function use<T extends CommandInteraction>(middleware_fn: CommandMiddleware<T>) {
     this.middleware.push(middleware_fn);
 }
 
-export function handle_middleware(interaction: SlashCommandInteraction, command: Command) {
-    let middlewares: CommandMiddleware[] = this.middleware || [];
+export function handle_middleware<T extends CommandInteraction>(interaction: T, command: Command<T>) {
+    let middlewares: CommandMiddleware<T>[] = this.middleware || [];
     let step = 0;
 
     if (command.middleware)
@@ -24,28 +17,11 @@ export function handle_middleware(interaction: SlashCommandInteraction, command:
         step++;
         
         if (step < middlewares.length)
-            run_middleware(interaction, middlewares[step] as CommandMiddleware, next);
-        else 
+            (middlewares[step] as CommandMiddleware<T>)(interaction, next);
+        else
             run_command_executor(interaction, command);
     }
 
     if (middlewares.length !== 0)
-        run_middleware(interaction, middlewares[step] as CommandMiddleware, next);
-}
-
-function run_middleware(interaction: SlashCommandInteraction, middleware: CommandMiddleware, next: () => void) {
-    switch (interaction.commandType) {
-        case 1:    
-            (middleware as ChatInputCommandMiddleware)(interaction, next);
-            break;
-        case 2:
-            (middleware as UserContextMenuCommandMiddleware)(interaction, next);
-            break;
-        case 3:
-            (middleware as MessageContextMenuCommandMiddleware)(interaction, next);
-            break;
-        default:
-            (middleware as SlashCommandMiddleware)(interaction, next);
-            break;
-    };
+        (middlewares[step] as CommandMiddleware<T>)(interaction, next);
 }

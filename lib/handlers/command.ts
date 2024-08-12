@@ -8,36 +8,36 @@ import {
     CommandMiddleware
 } from "../types";
 import { ChannelType, Defaults, handle_subcommand, OptionType } from "../helpers";
-import { ApplicationCommandType } from "discord.js";
+import { ApplicationCommandType, CommandInteraction } from "discord.js";
 
-export function module(command: string, ...callbacks: CommandCallbacks): Command {
-    let command_module = {} as Command;
+export function module<T extends CommandInteraction>(command: string, ...callbacks: CommandCallbacks<T>): Command<T> {
+    let command_module = {} as Command<T>;
 
     command_module.command = parse_command(command);
-    let subcommand = handle_subcommand.call(this, command_module);
-
-    command_module.middleware = callbacks.slice(0, callbacks.length-1) as CommandMiddleware[];
+    let subcommand = (handle_subcommand<T>).call(this, command_module);
+   
+    command_module.middleware = callbacks.slice(0, callbacks.length-1) as CommandMiddleware<T>[];
     command_module.execute = {};
     if (subcommand)
-        command_module.execute[subcommand] = callbacks[callbacks.length-1] as CommandExecutor;
+        command_module.execute[subcommand] = callbacks[callbacks.length-1] as CommandExecutor<T>;
     else
-        command_module.execute["(main)"] = callbacks[callbacks.length-1] as CommandExecutor;
+        command_module.execute["(main)"] = callbacks[callbacks.length-1] as CommandExecutor<T>;
 
     return command_module;
 }
 
-export function attach(command: string, ...callbacks: CommandCallbacks): void {
-    let command_module = {} as Command;
+export function attach<T extends CommandInteraction>(command: string, ...callbacks: CommandCallbacks<T>): void {
+    let command_module = {} as Command<T>;
 
     command_module.command = parse_command(command);
-    let subcommand = handle_subcommand.call(this, command_module);
+    let subcommand = (handle_subcommand<T>).call(this, command_module);
     
-    command_module.middleware = callbacks.slice(0, callbacks.length-1) as CommandMiddleware[];
+    command_module.middleware = callbacks.slice(0, callbacks.length-1) as CommandMiddleware<T>[];
     command_module.execute = {};
     if (subcommand)
-        command_module.execute[subcommand] = callbacks[callbacks.length-1] as CommandExecutor;
+        command_module.execute[subcommand] = callbacks[callbacks.length-1] as CommandExecutor<T>;
     else
-        command_module.execute["(main)"] = callbacks[callbacks.length-1] as CommandExecutor;
+        command_module.execute["(main)"] = callbacks[callbacks.length-1] as CommandExecutor<T>;
 
     this.commands.set(command_module.command.name, command_module);
 }

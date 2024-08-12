@@ -1,7 +1,7 @@
-import { ButtonInteraction } from "discord.js";
+import { ButtonInteraction, MessageComponentInteraction } from "discord.js";
 import { Component } from "../types";
 
-export function button(name: string, callback: (interaction: ButtonInteraction) => void) {
+export function component<T extends MessageComponentInteraction>(name: string, callback: (interaction: T) => void) {
     return {
         name: name,
         execute: callback

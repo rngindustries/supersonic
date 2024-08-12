@@ -6,7 +6,13 @@ import {
     ComponentList, 
     Event 
 } from "./types";
-import { ClientEvents } from "discord.js";
+import { 
+    ChatInputCommandInteraction, 
+    ClientEvents, 
+    CommandInteraction, 
+    MessageContextMenuCommandInteraction, 
+    UserContextMenuCommandInteraction 
+} from "discord.js";
 
 import * as client from "./client";
 import * as handlers from "./handlers";
@@ -15,15 +21,15 @@ import * as utils from "./utils";
 
 export default {
     commands: {
-        chat: new Map<string, Command>(),
-        user: new Map<string, Command>(),
-        message: new Map<string, Command>()
+        chat: new Map<string, Command<ChatInputCommandInteraction>>(),
+        user: new Map<string, Command<UserContextMenuCommandInteraction>>(),
+        message: new Map<string, Command<MessageContextMenuCommandInteraction>>()
     } as CommandList,
     components: {
         button: new Map<string, Component>()
     } as ComponentList,
     events: new Map<string, Event<keyof ClientEvents>>(),
-    middleware: [] as CommandMiddleware[],
+    middleware: [] as CommandMiddleware<CommandInteraction>[],
     categories: new Set<string>(),
     ...client,
     ...handlers,

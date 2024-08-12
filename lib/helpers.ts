@@ -1,4 +1,4 @@
-import { ApplicationCommandOptionType, ApplicationCommandType } from "discord.js";
+import { ApplicationCommandOptionType, ApplicationCommandType, CommandInteraction } from "discord.js";
 import { glob as _glob, GlobOptions } from "glob";
 import { Command, CommandDataOption } from "./types";
 
@@ -48,7 +48,7 @@ export async function glob(pattern: string | string[], options?: GlobOptions) {
     return await _glob(pattern);
 }
 
-export function handle_subcommand(command_module: Command): string {
+export function handle_subcommand<T extends CommandInteraction>(command_module: Command<T>): string {
     let command_data = command_module.command;
 
     if (command_data.type !== ApplicationCommandType.ChatInput)

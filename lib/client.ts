@@ -3,7 +3,8 @@ import {
     ApplicationCommand,  
     ApplicationCommandType, 
     Client, 
-    ClientEvents 
+    ClientEvents, 
+    CommandInteraction
 } from "discord.js";
 import { 
     ClientOptions, 
@@ -65,7 +66,7 @@ async function initialize_commands() {
         for (const command_file of command_files) {
             // need to require() rather than import() since tsup doesn't import() -> require()
             // and import() causes a bunch of issues (e.g., needing file:// prepend for absolute paths)
-            let command_module: Command = (require(command_file)).default || require(command_file);
+            let command_module: Command<CommandInteraction> = (require(command_file)).default || require(command_file);
             let command_data: CommandData = command_module.command;
             
             if (this.opts.use_directory_as_category && !command_data.category) {
@@ -96,7 +97,7 @@ async function initialize_commands() {
 
     for (const type of ["chat", "message", "user"]) {
         for (const command of this.commands[type]) {
-            let command_module: Command = command[1];
+            let command_module: Command<CommandInteraction> = command[1];
             let command_data: CommandData = command_module.command as CommandData;
             
             if (command_data.category && !this.categories.has(command_data.category)) 
@@ -176,7 +177,7 @@ async function populate_middleware() {
         const middleware_files = await glob(resolve(this.opts.middleware_directory, "**", "+*.{ts,js}")) as string[];
 
         for (const middleware_file of middleware_files) {
-            let middleware: CommandMiddleware = (require(middleware_file)).default || require(middleware_file); 
+            let middleware: CommandMiddleware<CommandInteraction> = (require(middleware_file)).default || require(middleware_file); 
             
             if (typeof middleware === "function")
                 this.middleware.push(middleware);
