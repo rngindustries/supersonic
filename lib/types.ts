@@ -1,6 +1,6 @@
 import { 
     APIActionRowComponent,
-    APIButtonComponent,
+    APIButtonComponentWithCustomId,
     APIEmbed,
     APIMessage,
     ApplicationCommandType,
@@ -98,8 +98,11 @@ export interface ClientOptions extends DiscordClientOptions {
 }
 
 export interface BasePaginationOptions {
-    interaction: SlashCommandInteraction;
+    interaction: CommandInteraction;
+    page_start?: number;
     timeout?: number;
+    row_type?: "basic" | "labels" | "page_number" | "ends";
+    custom_row?: APIActionRowComponent<APIButtonComponentWithCustomId>;
 }
 
 export interface DynamicPaginationOptions extends BasePaginationOptions {
@@ -107,11 +110,11 @@ export interface DynamicPaginationOptions extends BasePaginationOptions {
     max_pages: number;  
     on_initial: (
         embed: APIEmbed, 
-        row: APIActionRowComponent<APIButtonComponent>
+        row: APIActionRowComponent<APIButtonComponentWithCustomId>
     ) => Promise<APIMessage | Message>;
     on_page_change: (
         embed: APIEmbed,
-        row: APIActionRowComponent<APIButtonComponent>, 
+        row: APIActionRowComponent<APIButtonComponentWithCustomId>, 
         page: number
     ) => void;
 }

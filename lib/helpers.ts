@@ -1,4 +1,4 @@
-import { ApplicationCommandOptionType, ApplicationCommandType, CommandInteraction } from "discord.js";
+import { APIActionRowComponent, APIButtonComponent, ApplicationCommandOptionType, ApplicationCommandType, ButtonStyle, CommandInteraction, ComponentType } from "discord.js";
 import { glob as _glob, GlobOptions } from "glob";
 import { Command, CommandDataOption } from "./types";
 
@@ -33,7 +33,12 @@ export enum ChannelType {
 export enum Defaults {
     NO_DESCRIPTION_PROVIDED = "No description provided.",
     COMMAND_NOT_FOUND = "The requested command does not exist.",
-    UNEXPECTED_ERROR = "An unexpected error has occurred! If you are the developer, please view your console."
+    UNEXPECTED_ERROR = "An unexpected error has occurred! If you are the developer, please view your console.",
+    PAGE_NUMBER_LABEL_ID = "reball/page_number_label",
+    LEFT_END_PAGE_BUTTON_ID = "reball/left_end_page",
+    RIGHT_END_PAGE_BUTTON_ID = "reball/right_end_page",
+    PREVIOUS_PAGE_BUTTON_ID = "reball/previous_page",
+    NEXT_PAGE_BUTTON_ID = "reball/next_page"
 }
 
 export async function glob(pattern: string | string[], options?: GlobOptions) {
@@ -111,4 +116,110 @@ export function handle_subcommand<T extends CommandInteraction>(command_module: 
     }
 
     return "";
+}
+
+export const PresetPaginationRowList: { [key: string]: APIActionRowComponent<APIButtonComponent>} = {
+    "basic": {
+        type: ComponentType.ActionRow,
+        components: [
+            {
+                type: ComponentType.Button,
+                custom_id: Defaults.PREVIOUS_PAGE_BUTTON_ID,
+                style: ButtonStyle.Primary,
+                emoji: {
+                    name: "◀"
+                }
+            },
+            {
+                type: ComponentType.Button,
+                custom_id: Defaults.NEXT_PAGE_BUTTON_ID,
+                style: ButtonStyle.Primary,
+                emoji: {
+                    name: "▶"
+                }
+            }
+        ]
+    }, 
+    "labels": {
+        type: ComponentType.ActionRow,
+        components: [
+            {
+                type: ComponentType.Button,
+                custom_id: Defaults.PREVIOUS_PAGE_BUTTON_ID,
+                style: ButtonStyle.Primary,
+                label: "Previous"
+            },
+            {
+                type: ComponentType.Button,
+                custom_id: Defaults.NEXT_PAGE_BUTTON_ID,
+                style: ButtonStyle.Primary,
+                label: "Next"
+            }
+        ]
+    },
+    "page_number": {
+        type: ComponentType.ActionRow,
+        components: [
+            {
+                type: ComponentType.Button,
+                custom_id: Defaults.PREVIOUS_PAGE_BUTTON_ID,
+                style: ButtonStyle.Primary,
+                emoji: {
+                    name: "◀"
+                }
+            },
+            {
+                type: ComponentType.Button,
+                custom_id: Defaults.PAGE_NUMBER_LABEL_ID,
+                style: ButtonStyle.Secondary,
+                label: "Page ? of ?",
+                disabled: true
+            },
+            {
+                type: ComponentType.Button,
+                custom_id: Defaults.NEXT_PAGE_BUTTON_ID,
+                style: ButtonStyle.Primary,
+                emoji: {
+                    name: "▶"
+                }
+            }
+        ]
+    },
+    "ends": {
+        type: ComponentType.ActionRow,
+        components: [
+            {
+                type: ComponentType.Button,
+                custom_id: Defaults.LEFT_END_PAGE_BUTTON_ID,
+                style: ButtonStyle.Primary,
+                emoji: {
+                    name: "⏮️"
+                }
+            },
+            {
+                type: ComponentType.Button,
+                custom_id: Defaults.PREVIOUS_PAGE_BUTTON_ID,
+                style: ButtonStyle.Primary,
+                emoji: {
+                    name: "◀"
+                }
+            },
+            {
+                type: ComponentType.Button,
+                custom_id: Defaults.NEXT_PAGE_BUTTON_ID,
+                style: ButtonStyle.Primary,
+                emoji: {
+                    name: "▶"
+                }
+            },
+            {
+                type: ComponentType.Button,
+                custom_id: Defaults.RIGHT_END_PAGE_BUTTON_ID,
+                style: ButtonStyle.Primary,
+                emoji: {
+                    name: "⏭"
+                }
+            },
+        ]
+    }
 }
