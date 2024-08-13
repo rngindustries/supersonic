@@ -32,13 +32,10 @@ export async function paginate(options: DynamicPaginationOptions) {
     if (options.max_pages <= 1)
         options.max_pages = 1;
 
-    if (options.row_type === "page_number") {
-        let page_number_label = row.components.findIndex((component) => component.custom_id === Defaults.PAGE_NUMBER_LABEL_ID);
-
-        if (page_number_label !== -1) {
-            (row.components[page_number_label] as APIButtonComponent).label = `Page ${(options.page_start || 0) + 1} of ${options.max_pages <= 1 ? 1 : options.max_pages}`;
-        }
-    }
+    if (options.row_type === "page_number")
+        (row.components[
+            row.components.findIndex((component) => component.custom_id === Defaults.PAGE_NUMBER_LABEL_ID)
+        ] as APIButtonComponent).label = `Page ${(options.page_start || 0) + 1} of ${options.max_pages <= 1 ? 1 : options.max_pages}`;
 
     disable_navigation_on_end(
         "preliminary",
@@ -86,13 +83,10 @@ export async function paginate_static(options: StaticPaginationOptions) {
                 PresetPaginationRowList[options.row_type as string] as APIActionRowComponent<APIButtonComponentWithCustomId> : 
                 PresetPaginationRowList["basic"] as APIActionRowComponent<APIButtonComponentWithCustomId>;
 
-        if (options.row_type === "page_number") {
-            let page_number_label = row.components.findIndex((component) => component.custom_id === Defaults.PAGE_NUMBER_LABEL_ID);
-
-            if (page_number_label !== -1) {
-                (row.components[page_number_label] as APIButtonComponent).label = `Page ${(options.page_start || 0) + 1} of ${embeds.length}`;
-            }
-        }
+        if (options.row_type === "page_number")
+            (row.components[
+                row.components.findIndex((component) => component.custom_id === Defaults.PAGE_NUMBER_LABEL_ID)
+            ] as APIButtonComponent).label = `Page ${(options.page_start || 0) + 1} of ${embeds.length}`;
         
         // TODO: add proper error message
         if (embeds.length === 0) 
@@ -164,13 +158,10 @@ export async function paginate_list<T>(options: ListPaginationOptions<T>) {
             PresetPaginationRowList[options.row_type as string] as APIActionRowComponent<APIButtonComponentWithCustomId> : 
             PresetPaginationRowList["basic"] as APIActionRowComponent<APIButtonComponentWithCustomId>;
 
-    if (options.row_type === "page_number") {
-        let page_number_label = row.components.findIndex((component) => component.custom_id === Defaults.PAGE_NUMBER_LABEL_ID);
-
-        if (page_number_label !== -1) {
-            (row.components[page_number_label] as APIButtonComponent).label = `Page ${(options.page_start || 0) + 1} of ${max_pages}`;
-        }
-    }
+    if (options.row_type === "page_number")
+        (row.components[
+            row.components.findIndex((component) => component.custom_id === Defaults.PAGE_NUMBER_LABEL_ID)
+        ] as APIButtonComponent).label = `Page ${(options.page_start || 0) + 1} of ${max_pages}`;
 
     if (embed.fields === undefined)
         embed.fields = [];
@@ -249,13 +240,10 @@ export async function paginate_list_str<T>(options: StringListPaginationOptions<
             PresetPaginationRowList[options.row_type as string] as APIActionRowComponent<APIButtonComponentWithCustomId> : 
             PresetPaginationRowList["basic"] as APIActionRowComponent<APIButtonComponentWithCustomId>;
 
-    if (options.row_type === "page_number") {
-        let page_number_label = row.components.findIndex((component) => component.custom_id === Defaults.PAGE_NUMBER_LABEL_ID);
-
-        if (page_number_label !== -1) {
-            (row.components[page_number_label] as APIButtonComponent).label = `Page ${(options.page_start || 0) + 1} of ${max_pages}`;
-        }
-    }
+    if (options.row_type === "page_number")
+        (row.components[
+            row.components.findIndex((component) => component.custom_id === Defaults.PAGE_NUMBER_LABEL_ID)
+        ] as APIButtonComponent).label = `Page ${(options.page_start || 0) + 1} of ${max_pages}`;
 
     let list_selection = list
             .slice(0, amount_per_page)

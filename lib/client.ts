@@ -93,7 +93,7 @@ async function initialize_commands() {
         }
     }
 
-    const slash_commands = await this._client.application?.commands.fetch();
+    const slash_commands = await this._client.application?.commands.fetch({ cache: true });
 
     for (const type of ["chat", "message", "user"]) {
         for (const command of this.commands[type]) {
@@ -151,6 +151,16 @@ async function initialize_commands() {
                     );
                 }
             }
+        }
+    }
+
+    for (const slash_command of slash_commands) {
+        let id = slash_command[0];
+        let command = slash_command[1];
+        let type = command.type === 1 ? "chat" : command.type === 2 ? "user" : "message";
+        
+        if (!this.commands[type].has(command.name)) {
+            await this._client.application?.commands.delete(id);
         }
     }
 }
