@@ -4,7 +4,8 @@ import {
     CommandMiddleware,
     Component, 
     ComponentList, 
-    Event 
+    Event,
+    ClientOptions
 } from "./types";
 import { 
     ChatInputCommandInteraction, 
@@ -31,6 +32,7 @@ export default {
     events: new Map<string, Event<keyof ClientEvents>>(),
     middleware: [] as CommandMiddleware<CommandInteraction>[],
     categories: new Set<string>(),
+    opts: {} as ClientOptions,
     ...client,
     ...handlers,
     ...message,

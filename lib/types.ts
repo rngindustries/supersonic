@@ -89,8 +89,6 @@ export interface ClientOptions extends DiscordClientOptions {
     event_directory?: string;
     middleware_directory?: string;
     component_directory?: string;
-    emojis?: { [name: string]: string };
-    channels?: { [name: string]: string };
     guilds?: { [name: string]: string };
     use_directory_as_category?: boolean;
     default_category?: string;

@@ -31,13 +31,6 @@ export async function initialize(options?: ClientOptions | string): Promise<Clie
 
     this.opts = options as ClientOptions;
     
-    if (this.opts.guilds)
-        this.guilds = this.opts.guilds;
-    if (this.opts.channels)
-        this.channels = this.opts.channels;
-    if (this.opts.emojis)
-        this.emojis = this.opts.emojis;
-
     const client = new Client(this.opts);
     this._client = client;
 
