@@ -4,10 +4,12 @@ import {
     APIEmbed,
     APIMessage,
     ApplicationCommandType,
+    ButtonInteraction,
     ChatInputCommandInteraction,
     ClientEvents,
     CommandInteraction,
     ClientOptions as DiscordClientOptions,
+    InteractionCollector,
     Message,
     MessageComponentInteraction,
     MessageContextMenuCommandInteraction,
@@ -125,6 +127,7 @@ export interface StaticPaginator {
     (): Promise<void>;
     embeds: APIEmbed[];
     add_embed: (embed: APIEmbed) => this;
+    collector?: InteractionCollector<ButtonInteraction>;
 }
 
 export interface ListPaginationOptions<T> extends BasePaginationOptions {

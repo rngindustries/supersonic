@@ -52,7 +52,7 @@ export async function paginate(options: DynamicPaginationOptions) {
     if (options.max_pages === 1)
         return;
 
-    collect(
+    return collect(
         interaction, 
         message, 
         options.timeout || this.timeout || 60000,
@@ -64,7 +64,7 @@ export async function paginate(options: DynamicPaginationOptions) {
         },
         row,
         options.row_type
-    )
+    );
 }
 
 export async function paginate_static(options: StaticPaginationOptions) {
@@ -105,7 +105,7 @@ export async function paginate_static(options: StaticPaginationOptions) {
         if (embeds.length === 1)
             return;
 
-        collect(
+        paginator.collector = collect(
             interaction, 
             message, 
             options.timeout || this.timeout || 60000,
@@ -186,7 +186,7 @@ export async function paginate_list<T>(options: ListPaginationOptions<T>) {
     if (max_pages === 1)
         return;
     
-    collect(
+    return collect(
         interaction, 
         message, 
         options.timeout || this.timeout || 60000,
@@ -269,7 +269,7 @@ export async function paginate_list_str<T>(options: StringListPaginationOptions<
     if (max_pages === 1)
         return;
 
-    collect(
+    return collect(
         interaction, 
         message, 
         options.timeout || this.timeout || 60000,
@@ -412,6 +412,8 @@ function collect(
 
         callback(page);
     })
+
+    return collector;
 }
 
 function disable_navigation_on_end(
