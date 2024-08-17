@@ -61,11 +61,6 @@ export async function paginate(options: DynamicPaginationOptions) {
         options.max_pages-1, 
         (page: number) => {
             on_page_change(embed, row, page);
-            
-            interaction.editReply({
-                embeds: [embed],
-                components: [row]
-            });
         },
         row,
         options.row_type
