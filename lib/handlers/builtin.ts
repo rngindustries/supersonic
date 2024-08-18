@@ -1,8 +1,15 @@
-import { ApplicationCommandType, ChatInputCommandInteraction, CommandInteraction, Interaction, MessageContextMenuCommandInteraction, UserContextMenuCommandInteraction } from "discord.js";
+import { 
+    ApplicationCommandType,
+    ChatInputCommandInteraction, 
+    CommandInteraction, 
+    Interaction, 
+    MessageContextMenuCommandInteraction, 
+    UserContextMenuCommandInteraction 
+} from "discord.js";
 import { Defaults } from "../helpers";
-import { Command, CommandExecutor } from "../types";
+import { Command, CommandExecutor, Reball } from "../types";
 
-export function handle_interaction(interaction: Interaction) {
+export function handle_interaction(this: Reball, interaction: Interaction) {
     if (interaction.isCommand()) {
         const command_name = interaction.commandName;
         let command;
@@ -28,7 +35,12 @@ export function handle_interaction(interaction: Interaction) {
 
         try {
             if (this.middleware.length !== 0 || command.middleware.length !== 0) {
-                this.handle_middleware(interaction, command);
+                if (interaction.isChatInputCommand())
+                    this.handle_middleware<ChatInputCommandInteraction>(interaction, command as Command<ChatInputCommandInteraction>);
+                else if (interaction.isUserContextMenuCommand())
+                    this.handle_middleware<UserContextMenuCommandInteraction>(interaction, command as Command<UserContextMenuCommandInteraction>);
+                else if (interaction.isMessageContextMenuCommand())
+                    this.handle_middleware<MessageContextMenuCommandInteraction>(interaction, command as Command<MessageContextMenuCommandInteraction>);
             } else {
                 if (interaction.isChatInputCommand())
                     (run_command_executor<ChatInputCommandInteraction>)(interaction, command as Command<ChatInputCommandInteraction>);
@@ -48,7 +60,7 @@ export function handle_interaction(interaction: Interaction) {
     } else if (interaction.isButton()) {
         const custom_id = interaction.customId;
         const [name] = custom_id.split("|");
-        const button = this.components.button.get(name);
+        const button = this.components.button.get(name as string);
 
         if (button === undefined)
             return;

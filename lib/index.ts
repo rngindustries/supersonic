@@ -5,7 +5,8 @@ import {
     Component, 
     ComponentList, 
     Event,
-    ClientOptions
+    ClientOptions,
+    Reball
 } from "./types";
 import { 
     ChatInputCommandInteraction, 
@@ -37,4 +38,4 @@ export default {
     ...handlers,
     ...message,
     ...utils
-};
+} as Reball;

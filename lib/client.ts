@@ -1,6 +1,8 @@
 import { resolve, dirname, basename } from "path";
 import { 
-    ApplicationCommand,  
+    ApplicationCommand,   
+    ApplicationCommandData,   
+    ApplicationCommandOptionData,   
     ApplicationCommandType, 
     Client, 
     ClientEvents, 
@@ -10,16 +12,18 @@ import {
     ClientOptions, 
     Command, 
     CommandData,  
+    CommandList,  
     CommandMiddleware, 
     Component, 
-    Event 
+    Event, 
+    Reball
 } from "./types";
 import { glob } from "./helpers";
 import { handle_interaction } from "./handlers/builtin";
 import { readFile } from "fs/promises";
 import _ from "lodash";
 
-export async function initialize(options?: ClientOptions | string): Promise<Client<boolean>> {
+export async function initialize(this: Reball, options?: ClientOptions | string): Promise<Client<boolean>> {
     let options_json_file: string = "";
     if (typeof options === "string")
         options_json_file = options;
@@ -32,27 +36,29 @@ export async function initialize(options?: ClientOptions | string): Promise<Clie
     this.opts = options as ClientOptions;
     
     const client = new Client(this.opts);
-    this._client = client;
+    this.client = client;
 
-    this._client.on("interactionCreate", handle_interaction.bind(this));
+    this.client.on("interactionCreate", handle_interaction.bind(this));
 
     return client;
 }   
 
-export async function build(token: string) {
-    if (!this._client || !this.opts) 
+export async function build(this: Reball, token: string) {
+    if (!this.client || !this.opts) 
         return;
 
     await populate_middleware.call(this);
     await populate_components.call(this);
     await initialize_events.call(this);
     
-    await this._client.login(token);
+    await this.client.login(token);
 
     await initialize_commands.call(this);
 }
 
-async function initialize_commands() {
+async function initialize_commands(this: Reball) {
+    let client = this.client as Client;
+    
     if (this.opts.module && this.opts.command_directory) {
         const command_files = await glob(resolve(this.opts.command_directory, "**", "*.{ts,js}")) as string[];
         
@@ -86,35 +92,37 @@ async function initialize_commands() {
         }
     }
 
-    const slash_commands = await this._client.application?.commands.fetch({ cache: true });
+    const slash_commands = await client.application?.commands.fetch({ cache: true });
 
-    for (const type of ["chat", "message", "user"]) {
+    for (const type of ["chat", "message", "user"] as Array<keyof CommandList>) {
         for (const command of this.commands[type]) {
-            let command_module: Command<CommandInteraction> = command[1];
+            let command_module: Command<CommandInteraction> = command[1] as Command<CommandInteraction>;
             let command_data: CommandData = command_module.command as CommandData;
             
             if (command_data.category && !this.categories.has(command_data.category)) 
                 this.categories.add(command_data.category);
 
-            let defined_command: ApplicationCommand = slash_commands.find(
+            let defined_command = slash_commands?.find(
                 (cmd: ApplicationCommand) => 
                     cmd.name === command_data.name &&
                     cmd.type === command_data.type
             );
 
             if (!defined_command) {
-                await this._client.application?.commands.create({
-                    name: command_data.name,
-                    description: command_data.type === ApplicationCommandType.ChatInput ? command_data.description : "",
-                    type: command_data.type,
-                    options: command_data.options
-                });
+                await client.application?.commands.create(
+                    {
+                        name: command_data.name,
+                        description: command_data.type === ApplicationCommandType.ChatInput ? command_data.description : "",
+                        type: command_data.type,
+                        options: command_data.options
+                    } as ApplicationCommandData
+                );
             } else {
-                const command_fmt = {
+                const command_fmt: ApplicationCommandData = {
                     name: command_data.name,
                     description: command_data.type === ApplicationCommandType.ChatInput ? command_data.description : "",
                     type: command_data.type,
-                    options: command_data.options
+                    options: command_data.options as ApplicationCommandOptionData[]
                 };
 
                 const defined_command_fmt = {
@@ -138,7 +146,7 @@ async function initialize_commands() {
                 };
                 
                 if (!_.isEqual(command_fmt, defined_command_fmt)) {
-                    await this._client.application?.commands.edit(
+                    await client.application?.commands.edit(
                         defined_command,
                         command_fmt 
                     );
@@ -147,18 +155,18 @@ async function initialize_commands() {
         }
     }
 
-    for (const slash_command of slash_commands) {
+    for (const slash_command of slash_commands || []) {
         let id = slash_command[0];
         let command = slash_command[1];
-        let type = command.type === 1 ? "chat" : command.type === 2 ? "user" : "message";
+        let type: keyof CommandList = command.type === 1 ? "chat" : command.type === 2 ? "user" : "message";
         
         if (!this.commands[type].has(command.name)) {
-            await this._client.application?.commands.delete(id);
+            await client.application?.commands.delete(id);
         }
     }
 }
 
-async function initialize_events() {
+async function initialize_events(this: Reball) {
     if (this.opts.module && this.opts.event_directory) {
         const event_files = await glob(resolve(this.opts.event_directory, "**", "*.{ts,js}")) as string[];
         
@@ -171,11 +179,11 @@ async function initialize_events() {
 
     for (const event of this.events) {
         let event_module: Event<keyof ClientEvents> = event[1];
-        this._client[event_module.once ? "once" : "on"](event_module.name, event_module.execute.bind(this));
+        (this.client as Client)[event_module.once ? "once" : "on"](event_module.name, event_module.execute.bind(this));
     }
 }
 
-async function populate_middleware() {
+async function populate_middleware(this: Reball) {
     if (this.opts.module && this.opts.middleware_directory) {
         const middleware_files = await glob(resolve(this.opts.middleware_directory, "**", "+*.{ts,js}")) as string[];
 
@@ -188,7 +196,7 @@ async function populate_middleware() {
     }
 }
 
-async function populate_components() {
+async function populate_components(this: Reball) {
     if (this.opts.module && this.opts.component_directory) {
         const component_files = await glob(resolve(this.opts.component_directory, "**", "*.{ts,js}")) as string[];
 

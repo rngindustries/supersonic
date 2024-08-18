@@ -1,6 +1,6 @@
 import { APIActionRowComponent, APIButtonComponent, ApplicationCommandOptionType, ApplicationCommandType, ButtonStyle, CommandInteraction, ComponentType } from "discord.js";
 import { glob as _glob, GlobOptions } from "glob";
-import { Command, CommandDataOption } from "./types";
+import { Command, CommandDataOption, Reball } from "./types";
 
 export enum OptionType {
     str = 3,
@@ -53,7 +53,7 @@ export async function glob(pattern: string | string[], options?: GlobOptions) {
     return await _glob(pattern);
 }
 
-export function handle_subcommand<T extends CommandInteraction>(command_module: Command<T>): string {
+export function handle_subcommand<T extends CommandInteraction>(this: Reball, command_module: Command<T>): string {
     let command_data = command_module.command;
 
     if (command_data.type !== ApplicationCommandType.ChatInput)
@@ -75,16 +75,16 @@ export function handle_subcommand<T extends CommandInteraction>(command_module: 
         } as CommandDataOption;
 
         if (existing_command) {
-            let existing_group = existing_command.options.findIndex(
+            let existing_group = existing_command.command.options.findIndex(
                 (option: CommandDataOption) => 
                     option.type === ApplicationCommandOptionType.SubcommandGroup &&
                     option.name === command_data.subcommand_group  
             );
 
             if (existing_group) {
-                existing_command.options[existing_group].options.push(sub_option);
+                existing_command.command.options[existing_group]?.options?.push(sub_option);
             } else {
-                existing_command.options.push(group_option);
+                existing_command.command.options.push(group_option);
             }
         } else {
             command_module.command.options = [group_option];
@@ -105,7 +105,7 @@ export function handle_subcommand<T extends CommandInteraction>(command_module: 
         } as CommandDataOption;
 
         if (existing_command) {
-            existing_command.options.push(sub_option);
+            existing_command.command.options.push(sub_option);
         } else {
             command_module.command.options = [sub_option];
             command_module.command.sub_description = undefined;

@@ -1,5 +1,5 @@
 import { ButtonInteraction, MessageComponentInteraction } from "discord.js";
-import { Component } from "../types";
+import { Component, Reball } from "../types";
 
 export function component<T extends MessageComponentInteraction>(name: string, callback: (interaction: T) => void) {
     return {
@@ -8,7 +8,7 @@ export function component<T extends MessageComponentInteraction>(name: string, c
     } as Component;
 }
 
-export function click(name: string, callback: (interaction: ButtonInteraction) => void) {
+export function click(this: Reball, name: string, callback: (interaction: ButtonInteraction) => void) {
     this.components.button.set(name, {
         name: name,
         execute: callback

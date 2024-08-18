@@ -6,6 +6,7 @@ import {
     ApplicationCommandType,
     ButtonInteraction,
     ChatInputCommandInteraction,
+    Client,
     ClientEvents,
     CommandInteraction,
     ClientOptions as DiscordClientOptions,
@@ -17,6 +18,47 @@ import {
 } from "discord.js";
 
 export type SlashCommandInteraction = | ChatInputCommandInteraction | MessageContextMenuCommandInteraction | UserContextMenuCommandInteraction;
+
+export interface Reball extends HeaderClient, HeaderMessage, HeaderHandlers, HeaderUtils {
+    commands: CommandList;
+    components: ComponentList;
+    events: Map<string, Event<keyof ClientEvents>>;
+    middleware: CommandMiddleware<CommandInteraction>[];
+    categories: Set<string>;
+    opts: ClientOptions;
+    client?: Client;
+}
+
+export interface HeaderMessage {
+    paginate: (options: DynamicPaginationOptions) => Promise<InteractionCollector<ButtonInteraction> | undefined>;
+    paginate_list: <T>(options: ListPaginationOptions<T>) => Promise<InteractionCollector<ButtonInteraction> | undefined>;
+    paginate_list_str: <T>(options: StringListPaginationOptions<T>) => Promise<InteractionCollector<ButtonInteraction> | undefined>;
+    paginate_static: (options: StaticPaginationOptions) => Promise<StaticPaginator>;
+}
+
+export interface HeaderHandlers {
+    module: <T extends CommandInteraction>(command: string, ...callbacks: CommandCallbacks<T>) => Command<T>;
+    attach: <T extends CommandInteraction>(command: string, ...callbacks: CommandCallbacks<T>) => void;
+    parse_command: (command: string) => CommandData;
+
+    component: <T extends MessageComponentInteraction>(name: string, callback: (interaction: T) => void) => Component;
+    click: (name: string, callback: (interaction: ButtonInteraction) => void) => void;
+
+    listen: (event: string, callback: (...args: ClientEvents[keyof ClientEvents]) => void) => void;
+    listener: (event: string, callback: (...args: ClientEvents[keyof ClientEvents]) => void) => Event<keyof ClientEvents>;
+
+    use: <T extends CommandInteraction>(middleware_fn: CommandMiddleware<T>) => void;
+    handle_middleware: <T extends CommandInteraction>(this: Reball, interaction: T, command: Command<T>) => void;
+}
+
+export interface HeaderClient {
+    initialize: (options?: ClientOptions | string) => Promise<Client<boolean>>;
+    build: (token: string) => Promise<void>;
+}
+
+export interface HeaderUtils {
+    gucid: (name: string, state?: string[]) => string;
+}
 
 export interface CommandList {
     chat: Map<string, Command<ChatInputCommandInteraction>>;

@@ -5,12 +5,13 @@ import {
     CommandData, 
     CommandDataOption, 
     CommandExecutor, 
-    CommandMiddleware
+    CommandMiddleware,
+    Reball
 } from "../types";
 import { ChannelType, Defaults, handle_subcommand, OptionType } from "../helpers";
-import { ApplicationCommandType, CommandInteraction } from "discord.js";
+import { ApplicationCommandType, ChatInputCommandInteraction, CommandInteraction, MessageContextMenuCommandInteraction, UserContextMenuCommandInteraction } from "discord.js";
 
-export function module<T extends CommandInteraction>(command: string, ...callbacks: CommandCallbacks<T>): Command<T> {
+export function module<T extends CommandInteraction>(this: Reball, command: string, ...callbacks: CommandCallbacks<T>): Command<T> {
     let command_module = {} as Command<T>;
 
     command_module.command = parse_command(command);
@@ -26,7 +27,7 @@ export function module<T extends CommandInteraction>(command: string, ...callbac
     return command_module;
 }
 
-export function attach<T extends CommandInteraction>(command: string, ...callbacks: CommandCallbacks<T>): void {
+export function attach<T extends CommandInteraction>(this: Reball, command: string, ...callbacks: CommandCallbacks<T>): void {
     let command_module = {} as Command<T>;
 
     command_module.command = parse_command(command);
@@ -41,13 +42,13 @@ export function attach<T extends CommandInteraction>(command: string, ...callbac
 
     switch (command_module.command.type) {
         case ApplicationCommandType.ChatInput:
-            this.commands.chat.set(command_module.command.name, command_module);
+            this.commands.chat.set(command_module.command.name, command_module as unknown as Command<ChatInputCommandInteraction>);
             break;
         case ApplicationCommandType.Message:
-            this.commands.message.set(command_module.command.name, command_module);
+            this.commands.message.set(command_module.command.name, command_module as unknown as Command<MessageContextMenuCommandInteraction>);
             break;
         case ApplicationCommandType.User:
-            this.commands.user.set(command_module.command.name, command_module);
+            this.commands.user.set(command_module.command.name, command_module as unknown as Command<UserContextMenuCommandInteraction>);
             break;
     }
 }

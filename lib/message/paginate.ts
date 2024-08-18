@@ -11,13 +11,14 @@ import {
 import { 
     DynamicPaginationOptions, 
     ListPaginationOptions, 
+    Reball, 
     StaticPaginationOptions, 
     StaticPaginator, 
     StringListPaginationOptions 
 } from "../types";
 import { Defaults, PresetPaginationRowList } from "../helpers";
 
-export async function paginate(options: DynamicPaginationOptions) {
+export async function paginate(this: Reball, options: DynamicPaginationOptions) {
     let embed = options.embed_options;
     const interaction = options.interaction;
     const on_initial = options.on_initial;
@@ -55,7 +56,7 @@ export async function paginate(options: DynamicPaginationOptions) {
     return collect(
         interaction, 
         message, 
-        options.timeout || this.timeout || 60000,
+        options.timeout || this.opts.timeout || 60000,
         options.page_start || 0, 
         0, 
         options.max_pages-1, 
@@ -67,8 +68,8 @@ export async function paginate(options: DynamicPaginationOptions) {
     );
 }
 
-export async function paginate_static(options: StaticPaginationOptions) {
-    let paginator = (async function() {
+export async function paginate_static(this: Reball, options: StaticPaginationOptions) {
+    let paginator = (async function(this: Reball) {
         let embeds = paginator.embeds;
         const interaction = options.interaction;
 
@@ -108,7 +109,7 @@ export async function paginate_static(options: StaticPaginationOptions) {
         paginator.collector = collect(
             interaction, 
             message, 
-            options.timeout || this.timeout || 60000,
+            options.timeout || this.opts.timeout || 60000,
             options.page_start || 0, 
             0, 
             embeds.length-1, 
@@ -132,7 +133,7 @@ export async function paginate_static(options: StaticPaginationOptions) {
     return paginator;
 }
 
-export async function paginate_list<T>(options: ListPaginationOptions<T>) {
+export async function paginate_list<T>(this: Reball, options: ListPaginationOptions<T>) {
     let embed = options.embed_options;
     let list = options.list;
     let amount_per_page = options.amount_per_page;
@@ -189,7 +190,7 @@ export async function paginate_list<T>(options: ListPaginationOptions<T>) {
     return collect(
         interaction, 
         message, 
-        options.timeout || this.timeout || 60000,
+        options.timeout || this.opts.timeout || 60000,
         options.page_start || 0,  
         0, 
         max_pages-1, 
@@ -214,7 +215,7 @@ export async function paginate_list<T>(options: ListPaginationOptions<T>) {
     );
 }
 
-export async function paginate_list_str<T>(options: StringListPaginationOptions<T>) {
+export async function paginate_list_str<T>(this: Reball, options: StringListPaginationOptions<T>) {
     let list = options.list;
     let amount_per_page = options.amount_per_page;
     let max_pages = 1;
@@ -272,7 +273,7 @@ export async function paginate_list_str<T>(options: StringListPaginationOptions<
     return collect(
         interaction, 
         message, 
-        options.timeout || this.timeout || 60000,
+        options.timeout || this.opts.timeout || 60000,
         options.page_start || 0, 
         0, 
         max_pages-1, 

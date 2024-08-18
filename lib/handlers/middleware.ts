@@ -1,12 +1,12 @@
 import { CommandInteraction } from "discord.js";
-import { Command, CommandMiddleware } from "../types";
+import { Command, CommandMiddleware, Reball } from "../types";
 import { run_command_executor } from "./builtin";
  
-export function use<T extends CommandInteraction>(middleware_fn: CommandMiddleware<T>) {
-    this.middleware.push(middleware_fn);
+export function use<T extends CommandInteraction>(this: Reball, middleware_fn: CommandMiddleware<T>) {
+    this.middleware.push(middleware_fn as CommandMiddleware<CommandInteraction>);
 }
 
-export function handle_middleware<T extends CommandInteraction>(interaction: T, command: Command<T>) {
+export function handle_middleware<T extends CommandInteraction>(this: Reball, interaction: T, command: Command<T>) {
     let middlewares: CommandMiddleware<T>[] = this.middleware || [];
     let step = 0;
 
