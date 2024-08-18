@@ -1,4 +1,12 @@
-import { APIActionRowComponent, APIButtonComponent, ApplicationCommandOptionType, ApplicationCommandType, ButtonStyle, CommandInteraction, ComponentType } from "discord.js";
+import { 
+    APIActionRowComponent, 
+    APIButtonComponent, 
+    ApplicationCommandOptionType, 
+    ApplicationCommandType, 
+    ButtonStyle, 
+    CommandInteraction, 
+    ComponentType 
+} from "discord.js";
 import { glob as _glob, GlobOptions } from "glob";
 import { Command, CommandDataOption, Reball } from "./types";
 
@@ -39,83 +47,6 @@ export enum Defaults {
     RIGHT_END_PAGE_BUTTON_ID = "reball/right_end_page",
     PREVIOUS_PAGE_BUTTON_ID = "reball/previous_page",
     NEXT_PAGE_BUTTON_ID = "reball/next_page"
-}
-
-export async function glob(pattern: string | string[], options?: GlobOptions) {
-    // allows windows paths without removing the ability to escape glob patterns (see: windowsPathsNoEscape)
-    if (typeof pattern === "string") 
-        pattern = pattern.replaceAll(/\\/g, "/");
-    else
-        pattern = pattern.map(pat => pat.replaceAll(/\\/g, "/"))
-
-    if (options)
-        return await _glob(pattern, options);    
-    return await _glob(pattern);
-}
-
-export function handle_subcommand<T extends CommandInteraction>(this: Reball, command_module: Command<T>): string {
-    let command_data = command_module.command;
-
-    if (command_data.type !== ApplicationCommandType.ChatInput)
-        return "";
-
-    if (command_data.subcommand_group && command_data.subcommand) {
-        let existing_command = this.commands.chat.get(command_data.name);
-        let sub_option = {
-            type: ApplicationCommandOptionType.Subcommand,
-            name: command_data.subcommand,
-            description: command_data.sub_description || Defaults.NO_DESCRIPTION_PROVIDED,
-            options: command_data.options
-        } as CommandDataOption;
-        let group_option = {
-            type: ApplicationCommandOptionType.SubcommandGroup,
-            name: command_data.subcommand_group,
-            description: command_data.group_description || Defaults.NO_DESCRIPTION_PROVIDED,
-            options: [sub_option]
-        } as CommandDataOption;
-
-        if (existing_command) {
-            let existing_group = existing_command.command.options.findIndex(
-                (option: CommandDataOption) => 
-                    option.type === ApplicationCommandOptionType.SubcommandGroup &&
-                    option.name === command_data.subcommand_group  
-            );
-
-            if (existing_group) {
-                existing_command.command.options[existing_group]?.options?.push(sub_option);
-            } else {
-                existing_command.command.options.push(group_option);
-            }
-        } else {
-            command_module.command.options = [group_option];
-            command_module.command.sub_description = undefined;
-            command_module.command.group_description = undefined;
-            command_module.command.subcommand = undefined;
-            command_module.command.subcommand_group = undefined;
-        }
-
-        return `${group_option.name}:${sub_option.name}`;
-    } else if (command_data.subcommand) {
-        let existing_command = this.commands.chat.get(command_data.name);
-        let sub_option = {
-            type: ApplicationCommandOptionType.Subcommand,
-            name: command_data.subcommand,
-            description: command_data.sub_description || Defaults.NO_DESCRIPTION_PROVIDED,
-            options: command_data.options
-        } as CommandDataOption;
-
-        if (existing_command) {
-            existing_command.command.options.push(sub_option);
-        } else {
-            command_module.command.options = [sub_option];
-            command_module.command.sub_description = undefined;
-            command_module.command.subcommand = undefined;
-        }                
-
-        return sub_option.name;
-    }
-
-    return "";
 }
 
 export const PresetPaginationRowList: { [key: string]: APIActionRowComponent<APIButtonComponent>} = {
@@ -222,4 +153,82 @@ export const PresetPaginationRowList: { [key: string]: APIActionRowComponent<API
             },
         ]
     }
+}
+
+
+export async function glob(pattern: string | string[], options?: GlobOptions) {
+    // allows windows paths without removing the ability to escape glob patterns (see: windowsPathsNoEscape)
+    if (typeof pattern === "string") 
+        pattern = pattern.replaceAll(/\\/g, "/");
+    else
+        pattern = pattern.map(pat => pat.replaceAll(/\\/g, "/"))
+
+    if (options)
+        return await _glob(pattern, options);    
+    return await _glob(pattern);
+}
+
+export function handleSubcommand<T extends CommandInteraction>(this: Reball, command_module: Command<T>): string {
+    let commandData = command_module.command;
+
+    if (commandData.type !== ApplicationCommandType.ChatInput)
+        return "";
+
+    if (commandData.subcommand_group && commandData.subcommand) {
+        let existingCommand = this.commands.chat.get(commandData.name);
+        let subOption = {
+            type: ApplicationCommandOptionType.Subcommand,
+            name: commandData.subcommand,
+            description: commandData.sub_description || Defaults.NO_DESCRIPTION_PROVIDED,
+            options: commandData.options
+        } as CommandDataOption;
+        let groupOption = {
+            type: ApplicationCommandOptionType.SubcommandGroup,
+            name: commandData.subcommand_group,
+            description: commandData.group_description || Defaults.NO_DESCRIPTION_PROVIDED,
+            options: [subOption]
+        } as CommandDataOption;
+
+        if (existingCommand) {
+            let existingGroup = existingCommand.command.options.findIndex(
+                (option: CommandDataOption) => 
+                    option.type === ApplicationCommandOptionType.SubcommandGroup &&
+                    option.name === commandData.subcommand_group  
+            );
+
+            if (existingGroup) {
+                existingCommand.command.options[existingGroup]?.options?.push(subOption);
+            } else {
+                existingCommand.command.options.push(groupOption);
+            }
+        } else {
+            command_module.command.options = [groupOption];
+            command_module.command.sub_description = undefined;
+            command_module.command.group_description = undefined;
+            command_module.command.subcommand = undefined;
+            command_module.command.subcommand_group = undefined;
+        }
+
+        return `${groupOption.name}:${subOption.name}`;
+    } else if (commandData.subcommand) {
+        let existingCommand = this.commands.chat.get(commandData.name);
+        let subOption = {
+            type: ApplicationCommandOptionType.Subcommand,
+            name: commandData.subcommand,
+            description: commandData.sub_description || Defaults.NO_DESCRIPTION_PROVIDED,
+            options: commandData.options
+        } as CommandDataOption;
+
+        if (existingCommand) {
+            existingCommand.command.options.push(subOption);
+        } else {
+            command_module.command.options = [subOption];
+            command_module.command.sub_description = undefined;
+            command_module.command.subcommand = undefined;
+        }                
+
+        return subOption.name;
+    }
+
+    return "";
 }

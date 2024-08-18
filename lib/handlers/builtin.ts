@@ -9,19 +9,19 @@ import {
 import { Defaults } from "../helpers";
 import { Command, CommandExecutor, Reball } from "../types";
 
-export function handle_interaction(this: Reball, interaction: Interaction) {
+export function handleInteraction(this: Reball, interaction: Interaction) {
     if (interaction.isCommand()) {
-        const command_name = interaction.commandName;
+        const commandName = interaction.commandName;
         let command;
         switch (interaction.commandType) {
             case ApplicationCommandType.ChatInput:
-                command = this.commands.chat.get(command_name) as Command<ChatInputCommandInteraction>;
+                command = this.commands.chat.get(commandName) as Command<ChatInputCommandInteraction>;
                 break;
             case ApplicationCommandType.User:
-                command = this.commands.user.get(command_name) as Command<UserContextMenuCommandInteraction>;
+                command = this.commands.user.get(commandName) as Command<UserContextMenuCommandInteraction>;
                 break;
             case ApplicationCommandType.Message:
-                command = this.commands.message.get(command_name) as Command<MessageContextMenuCommandInteraction>;
+                command = this.commands.message.get(commandName) as Command<MessageContextMenuCommandInteraction>;
                 break;
         }
 
@@ -36,18 +36,18 @@ export function handle_interaction(this: Reball, interaction: Interaction) {
         try {
             if (this.middleware.length !== 0 || command.middleware.length !== 0) {
                 if (interaction.isChatInputCommand())
-                    this.handle_middleware<ChatInputCommandInteraction>(interaction, command as Command<ChatInputCommandInteraction>);
+                    this.handleMiddleware<ChatInputCommandInteraction>(interaction, command as Command<ChatInputCommandInteraction>);
                 else if (interaction.isUserContextMenuCommand())
-                    this.handle_middleware<UserContextMenuCommandInteraction>(interaction, command as Command<UserContextMenuCommandInteraction>);
+                    this.handleMiddleware<UserContextMenuCommandInteraction>(interaction, command as Command<UserContextMenuCommandInteraction>);
                 else if (interaction.isMessageContextMenuCommand())
-                    this.handle_middleware<MessageContextMenuCommandInteraction>(interaction, command as Command<MessageContextMenuCommandInteraction>);
+                    this.handleMiddleware<MessageContextMenuCommandInteraction>(interaction, command as Command<MessageContextMenuCommandInteraction>);
             } else {
                 if (interaction.isChatInputCommand())
-                    (run_command_executor<ChatInputCommandInteraction>)(interaction, command as Command<ChatInputCommandInteraction>);
+                    (runCommandExecutor<ChatInputCommandInteraction>)(interaction, command as Command<ChatInputCommandInteraction>);
                 else if (interaction.isUserContextMenuCommand())
-                    (run_command_executor<UserContextMenuCommandInteraction>)(interaction, command as Command<UserContextMenuCommandInteraction>);
+                    (runCommandExecutor<UserContextMenuCommandInteraction>)(interaction, command as Command<UserContextMenuCommandInteraction>);
                 else if (interaction.isMessageContextMenuCommand())
-                    (run_command_executor<MessageContextMenuCommandInteraction>)(interaction, command as Command<MessageContextMenuCommandInteraction>);
+                    (runCommandExecutor<MessageContextMenuCommandInteraction>)(interaction, command as Command<MessageContextMenuCommandInteraction>);
             }
         } catch (err) {
             interaction.reply({
@@ -58,8 +58,8 @@ export function handle_interaction(this: Reball, interaction: Interaction) {
             console.log(err);
         }
     } else if (interaction.isButton()) {
-        const custom_id = interaction.customId;
-        const [name] = custom_id.split("|");
+        const customId = interaction.customId;
+        const [name] = customId.split("|");
         const button = this.components.button.get(name as string);
 
         if (button === undefined)
@@ -78,7 +78,7 @@ export function handle_interaction(this: Reball, interaction: Interaction) {
     }
 }
 
-export function run_command_executor<T extends CommandInteraction>(interaction: T, command: Command<T>) {
+export function runCommandExecutor<T extends CommandInteraction>(interaction: T, command: Command<T>) {
     if (interaction.isChatInputCommand()) {
         let group = interaction.options.getSubcommandGroup(false);
         let subcommand = interaction.options.getSubcommand(false);

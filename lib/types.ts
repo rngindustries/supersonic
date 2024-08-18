@@ -31,15 +31,15 @@ export interface Reball extends HeaderClient, HeaderMessage, HeaderHandlers, Hea
 
 export interface HeaderMessage {
     paginate: (options: DynamicPaginationOptions) => Promise<InteractionCollector<ButtonInteraction> | undefined>;
-    paginate_list: <T>(options: ListPaginationOptions<T>) => Promise<InteractionCollector<ButtonInteraction> | undefined>;
-    paginate_list_str: <T>(options: StringListPaginationOptions<T>) => Promise<InteractionCollector<ButtonInteraction> | undefined>;
-    paginate_static: (options: StaticPaginationOptions) => Promise<StaticPaginator>;
+    paginateList: <T>(options: ListPaginationOptions<T>) => Promise<InteractionCollector<ButtonInteraction> | undefined>;
+    paginateListStr: <T>(options: StringListPaginationOptions<T>) => Promise<InteractionCollector<ButtonInteraction> | undefined>;
+    paginateStatic: (options: StaticPaginationOptions) => Promise<StaticPaginator>;
 }
 
 export interface HeaderHandlers {
     module: <T extends CommandInteraction>(command: string, ...callbacks: CommandCallbacks<T>) => Command<T>;
     attach: <T extends CommandInteraction>(command: string, ...callbacks: CommandCallbacks<T>) => void;
-    parse_command: (command: string) => CommandData;
+    parseCommand: (command: string) => CommandData;
 
     component: <T extends MessageComponentInteraction>(name: string, callback: (interaction: T) => void) => Component;
     click: (name: string, callback: (interaction: ButtonInteraction) => void) => void;
@@ -47,8 +47,8 @@ export interface HeaderHandlers {
     listen: (event: string, callback: (...args: ClientEvents[keyof ClientEvents]) => void) => void;
     listener: (event: string, callback: (...args: ClientEvents[keyof ClientEvents]) => void) => Event<keyof ClientEvents>;
 
-    use: <T extends CommandInteraction>(middleware_fn: CommandMiddleware<T>) => void;
-    handle_middleware: <T extends CommandInteraction>(this: Reball, interaction: T, command: Command<T>) => void;
+    use: <T extends CommandInteraction>(middlewareFn: CommandMiddleware<T>) => void;
+    handleMiddleware: <T extends CommandInteraction>(this: Reball, interaction: T, command: Command<T>) => void;
 }
 
 export interface HeaderClient {
