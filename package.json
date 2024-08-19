@@ -19,7 +19,7 @@
   },
   "scripts": {
     "dev": "npx ts-node-dev lib/index.ts",
-    "build": "npx tsup lib/index.ts --format cjs,esm --clean --dts"
+    "build": "npx tsup lib/index.ts --format cjs,esm --clean --dts && npx fix-tsup-cjs"
   },
   "files": [
     "dist"

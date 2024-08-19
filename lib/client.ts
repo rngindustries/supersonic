@@ -18,7 +18,7 @@ import {
     Event, 
     Reball
 } from "./types";
-import { glob } from "./helpers";
+import { glob, safeImportReballModule } from "./helpers";
 import { handleInteraction } from "./handlers/builtin";
 import { readFile } from "fs/promises";
 import _ from "lodash";
@@ -63,9 +63,7 @@ async function initializeCommands(this: Reball) {
         const commandFiles = await glob(resolve(this.opts.command_directory, "**", "*.{ts,js}")) as string[];
         
         for (const commandFile of commandFiles) {
-            // need to require() rather than import() since tsup doesn't import() -> require()
-            // and import() causes a bunch of issues (e.g., needing file:// prepend for absolute paths)
-            let commandModule: Command<CommandInteraction> = (require(commandFile)).default || require(commandFile);
+            let commandModule: Command<CommandInteraction> = await safeImportReballModule(commandFile);
             let commandData: CommandData = commandModule.command;
             
             if (this.opts.use_directory_as_category && !commandData.category) {
@@ -171,7 +169,7 @@ async function initializeEvents(this: Reball) {
         const eventFiles = await glob(resolve(this.opts.event_directory, "**", "*.{ts,js}")) as string[];
         
         for (const eventFile of eventFiles) {
-            let eventModule: Event<keyof ClientEvents> = (require(eventFile)).default || require(eventFile);
+            let eventModule: Event<keyof ClientEvents> = await safeImportReballModule(eventFile);
 
             this.events.set(eventModule.alias || eventModule.name, eventModule);
         }
@@ -188,7 +186,7 @@ async function populateMiddleware(this: Reball) {
         const middlewareFiles = await glob(resolve(this.opts.middleware_directory, "**", "+*.{ts,js}")) as string[];
 
         for (const middlewareFile of middlewareFiles) {
-            let middleware: CommandMiddleware<CommandInteraction> = (require(middlewareFile)).default || require(middlewareFile); 
+            let middleware: CommandMiddleware<CommandInteraction> = await safeImportReballModule(middlewareFile); 
             
             if (typeof middleware === "function")
                 this.middleware.push(middleware);
@@ -201,7 +199,7 @@ async function populateComponents(this: Reball) {
         const componentFiles = await glob(resolve(this.opts.component_directory, "**", "*.{ts,js}")) as string[];
 
         for (const componentFile of componentFiles) {
-            let component: Component = (require(componentFile)).default || require(componentFile);
+            let component: Component = await safeImportReballModule(componentFile);
             
             this.components.button.set(component.name, component);
         }

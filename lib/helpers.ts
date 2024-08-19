@@ -9,6 +9,7 @@ import {
 } from "discord.js";
 import { glob as _glob, GlobOptions } from "glob";
 import { Command, CommandDataOption, Reball } from "./types";
+import { pathToFileURL } from "url";
 
 export enum OptionType {
     str = 3,
@@ -168,8 +169,8 @@ export async function glob(pattern: string | string[], options?: GlobOptions) {
     return await _glob(pattern);
 }
 
-export function handleSubcommand<T extends CommandInteraction>(this: Reball, command_module: Command<T>): string {
-    let commandData = command_module.command;
+export function handleSubcommand<T extends CommandInteraction>(this: Reball, commandModule: Command<T>): string {
+    let commandData = commandModule.command;
 
     if (commandData.type !== ApplicationCommandType.ChatInput)
         return "";
@@ -202,11 +203,11 @@ export function handleSubcommand<T extends CommandInteraction>(this: Reball, com
                 existingCommand.command.options.push(groupOption);
             }
         } else {
-            command_module.command.options = [groupOption];
-            command_module.command.sub_description = undefined;
-            command_module.command.group_description = undefined;
-            command_module.command.subcommand = undefined;
-            command_module.command.subcommand_group = undefined;
+            commandModule.command.options = [groupOption];
+            commandModule.command.sub_description = undefined;
+            commandModule.command.group_description = undefined;
+            commandModule.command.subcommand = undefined;
+            commandModule.command.subcommand_group = undefined;
         }
 
         return `${groupOption.name}:${subOption.name}`;
@@ -222,13 +223,39 @@ export function handleSubcommand<T extends CommandInteraction>(this: Reball, com
         if (existingCommand) {
             existingCommand.command.options.push(subOption);
         } else {
-            command_module.command.options = [subOption];
-            command_module.command.sub_description = undefined;
-            command_module.command.subcommand = undefined;
+            commandModule.command.options = [subOption];
+            commandModule.command.sub_description = undefined;
+            commandModule.command.subcommand = undefined;
         }                
 
         return subOption.name;
     }
 
     return "";
+}
+
+export async function safeImportReballModule<T extends object>(modulePath: string): Promise<T> {
+    // ESBuild/tsup causes default exports to be double wrapped i.e., 
+    // ```ts
+    // export default r.module( ... );
+    // ```
+    // results in:
+    //  {
+    //      default: {
+    //          default: [Getter] 
+    //      } 
+    //  }
+    // 
+    // Issue: https://github.com/evanw/esbuild/issues/2623
+    // evanw's comment: https://github.com/evanw/esbuild/issues/2623#issuecomment-1287253436
+    // 
+    // Evan says not to use default exports which is sound advice (?), but with the way Reball is set up,
+    // default exports are required.
+    const urlPath = pathToFileURL(modulePath).href;
+    let module: T = (await import(urlPath)).default || await import(urlPath);
+
+    if ("default" in module)
+        module = (module as { "default": T }).default;
+
+    return module;
 }
