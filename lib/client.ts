@@ -18,7 +18,7 @@ import {
     Event, 
     Reball
 } from "./types";
-import { glob, safeImportReballModule } from "./helpers";
+import { Defaults, glob, handleSubcommand, safeImportReballModule } from "./helpers";
 import { handleInteraction } from "./handlers/builtin";
 import { readFile } from "fs/promises";
 import _ from "lodash";
@@ -64,7 +64,7 @@ async function initializeCommands(this: Reball) {
         
         for (const commandFile of commandFiles) {
             let commandModule: Command<CommandInteraction> = await safeImportReballModule(commandFile);
-            let commandData: CommandData = commandModule.command;
+            let commandData: CommandData = commandModule.data;
             
             if (this.opts.use_directory_as_category && !commandData.category) {
                 // use_directory_as_category does not override defined categories
@@ -73,19 +73,26 @@ async function initializeCommands(this: Reball) {
                 if (commandDirectory !== basename(this.opts.command_directory))
                     commandData.category = commandDirectory;
                 else
-                    commandData.category = this.opts.default_category || "general";
+                    commandData.category = this.opts.default_category || Defaults.DEFAULT_CATEGORY;
             }
 
-            switch (commandData.type) {
-                case ApplicationCommandType.ChatInput:
-                    this.commands.chat.set(commandData.name, commandModule);
-                    break;
-                case ApplicationCommandType.Message:
-                    this.commands.message.set(commandData.name, commandModule);
-                    break;
-                case ApplicationCommandType.User:
-                    this.commands.user.set(commandData.name, commandModule);
-                    break;
+            let commandExists = false;
+            
+            if (commandData.subName || commandData.groupName)
+                commandExists = handleSubcommand.call(this, commandModule); 
+
+            if (!commandExists) {
+                switch (commandData.type) {
+                    case ApplicationCommandType.ChatInput:
+                        this.commands.chat.set(commandData.name, commandModule);
+                        break;
+                    case ApplicationCommandType.Message:
+                        this.commands.message.set(commandData.name, commandModule);
+                        break;
+                    case ApplicationCommandType.User:
+                        this.commands.user.set(commandData.name, commandModule);
+                        break;
+                }
             }
         }
     }
@@ -95,7 +102,7 @@ async function initializeCommands(this: Reball) {
     for (const type of ["chat", "message", "user"] as Array<keyof CommandList>) {
         for (const command of this.commands[type]) {
             let commandModule: Command<CommandInteraction> = command[1] as Command<CommandInteraction>;
-            let commandData: CommandData = commandModule.command as CommandData;
+            let commandData: CommandData = commandModule.data as CommandData;
             
             if (commandData.category && !this.categories.has(commandData.category)) 
                 this.categories.add(commandData.category);

@@ -37,9 +37,9 @@ export interface HeaderMessage {
 }
 
 export interface HeaderHandlers {
-    module: <T extends CommandInteraction>(command: string, ...callbacks: CommandCallbacks<T>) => Command<T>;
-    attach: <T extends CommandInteraction>(command: string, ...callbacks: CommandCallbacks<T>) => void;
-    parseCommand: (command: string) => CommandData;
+    module: <T extends CommandInteraction>(payload: CommandPayload, ...callbacks: CommandCallbacks<T>) => Command<T>;
+    attach: <T extends CommandInteraction>(payload: CommandPayload, ...callbacks: CommandCallbacks<T>) => void;
+    parseCommand: (payload: CommandPayload) => CommandData;
 
     component: <T extends MessageComponentInteraction>(name: string, callback: (interaction: T) => void) => Component;
     click: (name: string, callback: (interaction: ButtonInteraction) => void) => void;
@@ -67,20 +67,36 @@ export interface CommandList {
 }
 
 export interface Command<T extends CommandInteraction> {
-    command: CommandData;
+    data: CommandData;
     middleware: CommandMiddleware<T>[];
     execute: { [key: string]: CommandExecutor<T> };
 }
 
+export interface CommandPayload {
+    name: string;
+    type?: ApplicationCommandType;
+    description?: string;
+    groupDescription?: string;
+    subDescription?: string;
+    mod?: string;
+    options: CommandPayloadOption[];
+}
+
+export interface CommandPayloadOption {
+    name: string;
+    description?: string;
+    mod: string;
+}
+
 export interface CommandData {
     name: string;
+    groupName?: string;
+    subName?: string;
     description: string;
+    groupDescription?: string;
+    subDescription?: string;
     category?: string;
-    prefixed?: boolean;
-    subcommand_group?: string;
-    subcommand?: string;
-    group_description?: string;
-    sub_description?: string;
+    nsfw?: boolean;
     type: ApplicationCommandType;
     options: CommandDataOption[];
 }
@@ -92,11 +108,11 @@ export interface CommandDataOption {
     required: boolean;
     autocomplete: boolean;
     choices?: Choice[];
-    min_value?: number;
-    max_value?: number;
-    min_length?: number;
-    max_length?: number;
-    channel_types?: number[];
+    minValue?: number;
+    maxValue?: number;
+    minLength?: number;
+    maxLength?: number;
+    channelTypes?: number[];
     options?: CommandDataOption[];
 }
 

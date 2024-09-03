@@ -2,13 +2,12 @@ import {
     APIActionRowComponent, 
     APIButtonComponent, 
     ApplicationCommandOptionType, 
-    ApplicationCommandType, 
     ButtonStyle, 
-    CommandInteraction, 
+    ChatInputCommandInteraction, 
     ComponentType 
 } from "discord.js";
-import { glob as _glob, GlobOptions } from "glob";
-import { Command, CommandDataOption, Reball } from "./types";
+import { glob as _glob, GlobOptions, Path } from "glob";
+import { Command, CommandDataOption, CommandExecutor, Reball } from "./types";
 import { pathToFileURL } from "url";
 
 export enum OptionType {
@@ -16,7 +15,7 @@ export enum OptionType {
     int = 4,
     bool = 5,
     user = 6,
-    ch = 7,
+    chan = 7,
     role = 8,
     ment = 9,
     num = 10,
@@ -40,6 +39,7 @@ export enum ChannelType {
 }
 
 export enum Defaults {
+    DEFAULT_CATEGORY = "general",
     NO_DESCRIPTION_PROVIDED = "No description provided.",
     COMMAND_NOT_FOUND = "The requested command does not exist.",
     UNEXPECTED_ERROR = "An unexpected error has occurred! If you are the developer, please view your console.",
@@ -156,8 +156,10 @@ export const PresetPaginationRowList: { [key: string]: APIActionRowComponent<API
     }
 }
 
-
-export async function glob(pattern: string | string[], options?: GlobOptions) {
+export async function glob(
+    pattern: string | string[], 
+    options?: GlobOptions
+): Promise<string[] | Path[]> {
     // allows windows paths without removing the ability to escape glob patterns (see: windowsPathsNoEscape)
     if (typeof pattern === "string") 
         pattern = pattern.replaceAll(/\\/g, "/");
@@ -169,69 +171,79 @@ export async function glob(pattern: string | string[], options?: GlobOptions) {
     return await _glob(pattern);
 }
 
-export function handleSubcommand<T extends CommandInteraction>(this: Reball, commandModule: Command<T>): string {
-    let commandData = commandModule.command;
+export function handleSubcommand(
+    this: Reball, 
+    commandModule: Command<ChatInputCommandInteraction>
+): boolean {
+    let commandData = commandModule.data;
 
-    if (commandData.type !== ApplicationCommandType.ChatInput)
-        return "";
-
-    if (commandData.subcommand_group && commandData.subcommand) {
+    if (commandData.groupName && commandData.subName) {
         let existingCommand = this.commands.chat.get(commandData.name);
         let subOption = {
             type: ApplicationCommandOptionType.Subcommand,
-            name: commandData.subcommand,
-            description: commandData.sub_description || Defaults.NO_DESCRIPTION_PROVIDED,
+            name: commandData.subName,
+            description: commandData.subDescription || Defaults.NO_DESCRIPTION_PROVIDED,
             options: commandData.options
         } as CommandDataOption;
         let groupOption = {
             type: ApplicationCommandOptionType.SubcommandGroup,
-            name: commandData.subcommand_group,
-            description: commandData.group_description || Defaults.NO_DESCRIPTION_PROVIDED,
+            name: commandData.groupName,
+            description: commandData.groupDescription || Defaults.NO_DESCRIPTION_PROVIDED,
             options: [subOption]
         } as CommandDataOption;
 
         if (existingCommand) {
-            let existingGroup = existingCommand.command.options.findIndex(
+            let existingGroup = existingCommand.data.options.findIndex(
                 (option: CommandDataOption) => 
                     option.type === ApplicationCommandOptionType.SubcommandGroup &&
-                    option.name === commandData.subcommand_group  
+                    option.name === commandData.groupName  
             );
 
             if (existingGroup) {
-                existingCommand.command.options[existingGroup]?.options?.push(subOption);
+                existingCommand.data.options[existingGroup]?.options?.push(subOption);
             } else {
-                existingCommand.command.options.push(groupOption);
+                existingCommand.data.options.push(groupOption);
             }
-        } else {
-            commandModule.command.options = [groupOption];
-            commandModule.command.sub_description = undefined;
-            commandModule.command.group_description = undefined;
-            commandModule.command.subcommand = undefined;
-            commandModule.command.subcommand_group = undefined;
-        }
+        
+            const executor = commandModule.execute[`${commandData.groupName}:${commandData.subName}`] as CommandExecutor<ChatInputCommandInteraction>;
+            existingCommand.execute[`${commandData.groupName}:${commandData.subName}`] = executor;
 
-        return `${groupOption.name}:${subOption.name}`;
-    } else if (commandData.subcommand) {
+            return true;
+        } else {
+            commandModule.data.options = [groupOption];
+            commandModule.data.subDescription = undefined;
+            commandModule.data.groupDescription = undefined;
+            commandModule.data.subName = undefined;
+            commandModule.data.groupName = undefined;
+
+            return false;
+        }
+    } else if (commandData.subName) {
         let existingCommand = this.commands.chat.get(commandData.name);
         let subOption = {
             type: ApplicationCommandOptionType.Subcommand,
-            name: commandData.subcommand,
-            description: commandData.sub_description || Defaults.NO_DESCRIPTION_PROVIDED,
+            name: commandData.subName,
+            description: commandData.subDescription || Defaults.NO_DESCRIPTION_PROVIDED,
             options: commandData.options
         } as CommandDataOption;
 
         if (existingCommand) {
-            existingCommand.command.options.push(subOption);
-        } else {
-            commandModule.command.options = [subOption];
-            commandModule.command.sub_description = undefined;
-            commandModule.command.subcommand = undefined;
-        }                
+            existingCommand.data.options.push(subOption);
 
-        return subOption.name;
+            const executor = commandModule.execute[commandData.subName] as CommandExecutor<ChatInputCommandInteraction>;
+            existingCommand.execute[commandData.subName] = executor;
+            
+            return true;
+        } else {
+            commandModule.data.options = [subOption];
+            commandModule.data.subDescription = undefined;
+            commandModule.data.subName = undefined;
+
+            return false;
+        }
     }
 
-    return "";
+    return false;
 }
 
 export async function safeImportReballModule<T extends object>(modulePath: string): Promise<T> {
