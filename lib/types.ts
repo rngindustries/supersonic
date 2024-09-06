@@ -145,32 +145,32 @@ export interface Component {
 export interface ClientOptions extends DiscordClientOptions {
     environment: string;
     module: boolean;
-    command_directory?: string;
-    event_directory?: string;
-    middleware_directory?: string;
-    component_directory?: string;
+    commandDirectory?: string;
+    eventDirectory?: string;
+    middlewareDirectory?: string;
+    componentDirectory?: string;
     guilds?: { [name: string]: string };
-    use_directory_as_category?: boolean;
-    default_category?: string;
+    useDirectoryAsCategory?: boolean;
+    defaultCategory?: string;
     timeout?: number;
 }
 
 export interface BasePaginationOptions {
     interaction: CommandInteraction;
-    page_start?: number;
+    pageStart?: number;
     timeout?: number;
-    row_type?: "basic" | "labels" | "page_number" | "ends";
-    custom_row?: APIActionRowComponent<APIButtonComponentWithCustomId>;
+    rowType?: "basic" | "labels" | "page-number" | "ends";
+    customRow?: APIActionRowComponent<APIButtonComponentWithCustomId>;
 }
 
 export interface DynamicPaginationOptions extends BasePaginationOptions {
-    embed_options: APIEmbed;
-    max_pages: number;  
-    on_initial: (
+    embedOptions: APIEmbed;
+    maxPages: number;  
+    onInitial: (
         embed: APIEmbed, 
         row: APIActionRowComponent<APIButtonComponentWithCustomId>
     ) => Promise<APIMessage | Message>;
-    on_page_change: (
+    onPageChange: (
         embed: APIEmbed,
         row: APIActionRowComponent<APIButtonComponentWithCustomId>, 
         page: number
@@ -184,23 +184,23 @@ export interface StaticPaginationOptions extends BasePaginationOptions {
 export interface StaticPaginator {
     (): Promise<void>;
     embeds: APIEmbed[];
-    add_embed: (embed: APIEmbed) => this;
+    addEmbed: (embed: APIEmbed) => this;
     collector?: InteractionCollector<ButtonInteraction>;
 }
 
 export interface ListPaginationOptions<T> extends BasePaginationOptions {
-    embed_options: APIEmbed;
-    max_pages?: number;
-    amount_per_page: number;
-    list_name: string;
+    embedOptions: APIEmbed;
+    maxPages?: number;
+    amountPerPage: number;
+    listName: string;
     list: T[];
     inline?: string;
 }
 
 export interface StringListPaginationOptions<T> extends BasePaginationOptions {
-    max_pages?: number;
-    amount_per_page: number;
-    list_name?: string;
+    maxPages?: number;
+    amountPerPage: number;
+    listName?: string;
     list: T[];
     inline?: string;
     formatting?: `${string}\${entry_name}${string}\${entries}${string}` | `${string}\${entries}\${string}`;

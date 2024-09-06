@@ -19,52 +19,52 @@ import {
 import { Defaults, PresetPaginationRowList } from "../helpers";
 
 export async function paginate(this: Reball, options: DynamicPaginationOptions) {
-    let embed = options.embed_options;
+    let embed = options.embedOptions;
     const interaction = options.interaction;
-    const onInitial = options.on_initial;
-    const onPageChange = options.on_page_change;
+    const onInitial = options.onInitial;
+    const onPageChange = options.onPageChange;
     
     let row = 
-        options.custom_row as APIActionRowComponent<APIButtonComponentWithCustomId> || 
-        options.row_type ? 
-            PresetPaginationRowList[options.row_type as string] as APIActionRowComponent<APIButtonComponentWithCustomId> : 
+        options.customRow as APIActionRowComponent<APIButtonComponentWithCustomId> || 
+        options.rowType ? 
+            PresetPaginationRowList[options.rowType as string] as APIActionRowComponent<APIButtonComponentWithCustomId> : 
             PresetPaginationRowList["basic"] as APIActionRowComponent<APIButtonComponentWithCustomId>;
 
-    if (options.max_pages <= 1)
-        options.max_pages = 1;
+    if (options.maxPages <= 1)
+        options.maxPages = 1;
 
-    if (options.row_type === "page_number")
+    if (options.rowType === "page-number")
         (row.components[
             row.components.findIndex((component) => component.custom_id === Defaults.PAGE_NUMBER_LABEL_ID)
-        ] as APIButtonComponent).label = `Page ${(options.page_start || 0) + 1} of ${options.max_pages <= 1 ? 1 : options.max_pages}`;
+        ] as APIButtonComponent).label = `Page ${(options.pageStart || 0) + 1} of ${options.maxPages <= 1 ? 1 : options.maxPages}`;
 
     disableNavigationOnEnd(
         "preliminary",
-        options.page_start || 0,
+        options.pageStart || 0,
         0,
-        options.max_pages-1,
+        options.maxPages-1,
         row,
-        options.row_type
+        options.rowType
     );
 
     const message = await onInitial(embed, row);
 
     // TODO: add warning indicating that pagination is unneeded here
-    if (options.max_pages === 1)
+    if (options.maxPages === 1)
         return;
 
     return collect(
         interaction, 
         message, 
         options.timeout || this.opts.timeout || 60000,
-        options.page_start || 0, 
+        options.pageStart || 0, 
         0, 
-        options.max_pages-1, 
+        options.maxPages-1, 
         (page: number) => {
             onPageChange(embed, row, page);
         },
         row,
-        options.row_type
+        options.rowType
     );
 }
 
@@ -74,15 +74,15 @@ export async function paginateStatic(this: Reball, options: StaticPaginationOpti
         const interaction = options.interaction;
 
         let row = 
-            options.custom_row as APIActionRowComponent<APIButtonComponentWithCustomId> || 
-            options.row_type ? 
-                PresetPaginationRowList[options.row_type as string] as APIActionRowComponent<APIButtonComponentWithCustomId> : 
+            options.customRow as APIActionRowComponent<APIButtonComponentWithCustomId> || 
+            options.rowType ? 
+                PresetPaginationRowList[options.rowType as string] as APIActionRowComponent<APIButtonComponentWithCustomId> : 
                 PresetPaginationRowList["basic"] as APIActionRowComponent<APIButtonComponentWithCustomId>;
 
-        if (options.row_type === "page_number")
+        if (options.rowType === "page-number")
             (row.components[
                 row.components.findIndex((component) => component.custom_id === Defaults.PAGE_NUMBER_LABEL_ID)
-            ] as APIButtonComponent).label = `Page ${(options.page_start || 0) + 1} of ${embeds.length}`;
+            ] as APIButtonComponent).label = `Page ${(options.pageStart || 0) + 1} of ${embeds.length}`;
         
         // TODO: add proper error message
         if (embeds.length === 0) 
@@ -90,11 +90,11 @@ export async function paginateStatic(this: Reball, options: StaticPaginationOpti
         
         disableNavigationOnEnd(
             "preliminary",
-            options.page_start || 0,
+            options.pageStart || 0,
             0,
             embeds.length-1,
             row,
-            options.row_type
+            options.rowType
         );
 
         const message = await interaction.reply({
@@ -110,7 +110,7 @@ export async function paginateStatic(this: Reball, options: StaticPaginationOpti
             interaction, 
             message, 
             options.timeout || this.opts.timeout || 60000,
-            options.page_start || 0, 
+            options.pageStart || 0, 
             0, 
             embeds.length-1, 
             (page: number) => {
@@ -120,12 +120,12 @@ export async function paginateStatic(this: Reball, options: StaticPaginationOpti
                 });
             },
             row,
-            options.row_type
+            options.rowType
         );
     }).bind(this) as StaticPaginator;
 
     paginator.embeds = options.embeds || [];
-    paginator.add_embed = ((embed: APIEmbed) => {
+    paginator.addEmbed = ((embed: APIEmbed) => {
         paginator.embeds.push(embed);
         return paginator;
     });
@@ -134,14 +134,14 @@ export async function paginateStatic(this: Reball, options: StaticPaginationOpti
 }
 
 export async function paginateList<T>(this: Reball, options: ListPaginationOptions<T>) {
-    let embed = options.embed_options;
+    let embed = options.embedOptions;
     let list = options.list;
-    let amountPerPage = options.amount_per_page;
+    let amountPerPage = options.amountPerPage;
     let maxPages = 1;
     const interaction = options.interaction;
 
-    if (options.max_pages)
-        maxPages = Math.min(options.max_pages, Math.ceil(list.length / amountPerPage));
+    if (options.maxPages)
+        maxPages = Math.min(options.maxPages, Math.ceil(list.length / amountPerPage));
     else 
         maxPages = Math.ceil(list.length / amountPerPage);
 
@@ -149,21 +149,21 @@ export async function paginateList<T>(this: Reball, options: ListPaginationOptio
         maxPages = 1;
 
     let row = 
-        options.custom_row as APIActionRowComponent<APIButtonComponentWithCustomId> || 
-        options.row_type ? 
-            PresetPaginationRowList[options.row_type as string] as APIActionRowComponent<APIButtonComponentWithCustomId> : 
+        options.customRow as APIActionRowComponent<APIButtonComponentWithCustomId> || 
+        options.rowType ? 
+            PresetPaginationRowList[options.rowType as string] as APIActionRowComponent<APIButtonComponentWithCustomId> : 
             PresetPaginationRowList["basic"] as APIActionRowComponent<APIButtonComponentWithCustomId>;
 
-    if (options.row_type === "page_number")
+    if (options.rowType === "page-number")
         (row.components[
             row.components.findIndex((component) => component.custom_id === Defaults.PAGE_NUMBER_LABEL_ID)
-        ] as APIButtonComponent).label = `Page ${(options.page_start || 0) + 1} of ${maxPages}`;
+        ] as APIButtonComponent).label = `Page ${(options.pageStart || 0) + 1} of ${maxPages}`;
 
     if (embed.fields === undefined)
         embed.fields = [];
     
     embed.fields.push({
-        name: options.list_name,
+        name: options.listName,
         value: list
             .slice(0, amountPerPage)
             .join(options.inline ? options.inline : "\n")
@@ -171,11 +171,11 @@ export async function paginateList<T>(this: Reball, options: ListPaginationOptio
 
     disableNavigationOnEnd(
         "preliminary",
-        options.page_start || 0,
+        options.pageStart || 0,
         0,
         maxPages-1,
         row,
-        options.row_type
+        options.rowType
     );
 
     const message = await interaction.reply({
@@ -191,15 +191,15 @@ export async function paginateList<T>(this: Reball, options: ListPaginationOptio
         interaction, 
         message, 
         options.timeout || this.opts.timeout || 60000,
-        options.page_start || 0,  
+        options.pageStart || 0,  
         0, 
         maxPages-1, 
         (page: number) => {
             if (embed.fields === undefined)
                 embed.fields = [];
     
-            embed.fields[embed.fields.findIndex((field) => field.name === options.list_name)] = {
-                name: options.list_name,
+            embed.fields[embed.fields.findIndex((field) => field.name === options.listName)] = {
+                name: options.listName,
                 value: list
                     .slice(page * amountPerPage, page * amountPerPage + amountPerPage)
                     .join(options.inline ? options.inline : "\n")
@@ -211,19 +211,19 @@ export async function paginateList<T>(this: Reball, options: ListPaginationOptio
             });
         },
         row,
-        options.row_type
+        options.rowType
     );
 }
 
 export async function paginateListStr<T>(this: Reball, options: StringListPaginationOptions<T>) {
     let list = options.list;
-    let amountPerPage = options.amount_per_page;
+    let amountPerPage = options.amountPerPage;
     let maxPages = 1;
     let formatting = options.formatting;
     const interaction = options.interaction;
 
-    if (options.max_pages)
-        maxPages = Math.min(options.max_pages, Math.ceil(list.length / amountPerPage));
+    if (options.maxPages)
+        maxPages = Math.min(options.maxPages, Math.ceil(list.length / amountPerPage));
     else
         maxPages = Math.ceil(list.length / amountPerPage);
 
@@ -231,34 +231,34 @@ export async function paginateListStr<T>(this: Reball, options: StringListPagina
         maxPages = 1;
 
     let row = 
-        options.custom_row as APIActionRowComponent<APIButtonComponentWithCustomId> || 
-        options.row_type ? 
-            PresetPaginationRowList[options.row_type as string] as APIActionRowComponent<APIButtonComponentWithCustomId> : 
+        options.customRow as APIActionRowComponent<APIButtonComponentWithCustomId> || 
+        options.rowType ? 
+            PresetPaginationRowList[options.rowType as string] as APIActionRowComponent<APIButtonComponentWithCustomId> : 
             PresetPaginationRowList["basic"] as APIActionRowComponent<APIButtonComponentWithCustomId>;
 
-    if (options.row_type === "page_number")
+    if (options.rowType === "page-number")
         (row.components[
             row.components.findIndex((component) => component.custom_id === Defaults.PAGE_NUMBER_LABEL_ID)
-        ] as APIButtonComponent).label = `Page ${(options.page_start || 0) + 1} of ${maxPages}`;
+        ] as APIButtonComponent).label = `Page ${(options.pageStart || 0) + 1} of ${maxPages}`;
 
     let listSelection = list
             .slice(0, amountPerPage)
             .join(options.inline ? options.inline : "\n");
-    let content = `\`${options.list_name || ""}:\`\n${listSelection}`;
+    let content = `\`${options.listName || ""}:\`\n${listSelection}`;
 
     if (formatting) {
         content = formatting
             .replace("${list}", listSelection)
-            .replace("${list_name}", options.list_name || "");
+            .replace("${list_name}", options.listName || "");
     }
 
     disableNavigationOnEnd(
         "preliminary",
-        options.page_start || 0,
+        options.pageStart || 0,
         0,
         maxPages-1,
         row,
-        options.row_type
+        options.rowType
     );
 
     const message = await interaction.reply({
@@ -274,19 +274,19 @@ export async function paginateListStr<T>(this: Reball, options: StringListPagina
         interaction, 
         message, 
         options.timeout || this.opts.timeout || 60000,
-        options.page_start || 0, 
+        options.pageStart || 0, 
         0, 
         maxPages-1, 
         (page: number) => {
             let listSelection = list
                 .slice(page * amountPerPage, page * amountPerPage + amountPerPage)
                 .join(options.inline ? options.inline : "\n");
-            let content = `\`${options.list_name || ""}:\`\n${listSelection}`;
+            let content = `\`${options.listName || ""}:\`\n${listSelection}`;
 
             if (formatting) {
                 content = formatting
                     .replace("${list}", listSelection)
-                    .replace("${list_name}", options.list_name || "");
+                    .replace("${list_name}", options.listName || "");
             }
 
             interaction.editReply({
@@ -295,7 +295,7 @@ export async function paginateListStr<T>(this: Reball, options: StringListPagina
             });
         },
         row,
-        options.row_type
+        options.rowType
     );
 }
 
