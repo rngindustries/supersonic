@@ -59,21 +59,21 @@ export async function build(this: Reball, token: string) {
 async function initializeCommands(this: Reball) {
     let client = this.client as Client;
     
-    if (this.opts.module && this.opts.command_directory) {
-        const commandFiles = await glob(resolve(this.opts.command_directory, "**", "*.{ts,js}")) as string[];
+    if (this.opts.module && this.opts.commandDirectory) {
+        const commandFiles = await glob(resolve(this.opts.commandDirectory, "**", "*.{ts,js}")) as string[];
         
         for (const commandFile of commandFiles) {
             let commandModule: Command<CommandInteraction> = await safeImportReballModule(commandFile);
             let commandData: CommandData = commandModule.data;
             
-            if (this.opts.use_directory_as_category && !commandData.category) {
+            if (this.opts.useDirectoryAsCategory && !commandData.category) {
                 // use_directory_as_category does not override defined categories
                 let commandDirectory = basename(dirname(commandFile));
                
-                if (commandDirectory !== basename(this.opts.command_directory))
+                if (commandDirectory !== basename(this.opts.commandDirectory))
                     commandData.category = commandDirectory;
                 else
-                    commandData.category = this.opts.default_category || Defaults.DEFAULT_CATEGORY;
+                    commandData.category = this.opts.defaultCategory || Defaults.DEFAULT_CATEGORY;
             }
 
             let commandExists = false;
@@ -172,8 +172,8 @@ async function initializeCommands(this: Reball) {
 }
 
 async function initializeEvents(this: Reball) {
-    if (this.opts.module && this.opts.event_directory) {
-        const eventFiles = await glob(resolve(this.opts.event_directory, "**", "*.{ts,js}")) as string[];
+    if (this.opts.module && this.opts.eventDirectory) {
+        const eventFiles = await glob(resolve(this.opts.eventDirectory, "**", "*.{ts,js}")) as string[];
         
         for (const eventFile of eventFiles) {
             let eventModule: Event<keyof ClientEvents> = await safeImportReballModule(eventFile);
@@ -189,8 +189,8 @@ async function initializeEvents(this: Reball) {
 }
 
 async function populateMiddleware(this: Reball) {
-    if (this.opts.module && this.opts.middleware_directory) {
-        const middlewareFiles = await glob(resolve(this.opts.middleware_directory, "**", "+*.{ts,js}")) as string[];
+    if (this.opts.module && this.opts.middlewareDirectory) {
+        const middlewareFiles = await glob(resolve(this.opts.middlewareDirectory, "**", "+*.{ts,js}")) as string[];
 
         for (const middlewareFile of middlewareFiles) {
             let middleware: CommandMiddleware<CommandInteraction> = await safeImportReballModule(middlewareFile); 
@@ -202,8 +202,8 @@ async function populateMiddleware(this: Reball) {
 }
 
 async function populateComponents(this: Reball) {
-    if (this.opts.module && this.opts.component_directory) {
-        const componentFiles = await glob(resolve(this.opts.component_directory, "**", "*.{ts,js}")) as string[];
+    if (this.opts.module && this.opts.componentDirectory) {
+        const componentFiles = await glob(resolve(this.opts.componentDirectory, "**", "*.{ts,js}")) as string[];
 
         for (const componentFile of componentFiles) {
             let component: Component = await safeImportReballModule(componentFile);
