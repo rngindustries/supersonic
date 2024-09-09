@@ -6,7 +6,9 @@ import {
     APIMessage,
     CommandInteraction,
     ComponentType,
-    Message
+    Message,
+    PartialGroupDMChannel,
+    TextBasedChannel
 } from "discord.js";
 import { 
     DynamicPaginationOptions, 
@@ -36,7 +38,7 @@ export async function paginate(this: Reball, options: DynamicPaginationOptions) 
     if (options.rowType === "page-number")
         (row.components[
             row.components.findIndex((component) => component.custom_id === Defaults.PAGE_NUMBER_LABEL_ID)
-        ] as APIButtonComponent).label = `Page ${(options.pageStart || 0) + 1} of ${options.maxPages <= 1 ? 1 : options.maxPages}`;
+        ] as APIButtonComponentWithCustomId).label = `Page ${(options.pageStart || 0) + 1} of ${options.maxPages <= 1 ? 1 : options.maxPages}`;
 
     disableNavigationOnEnd(
         "preliminary",
@@ -82,7 +84,7 @@ export async function paginateStatic(this: Reball, options: StaticPaginationOpti
         if (options.rowType === "page-number")
             (row.components[
                 row.components.findIndex((component) => component.custom_id === Defaults.PAGE_NUMBER_LABEL_ID)
-            ] as APIButtonComponent).label = `Page ${(options.pageStart || 0) + 1} of ${embeds.length}`;
+            ] as APIButtonComponentWithCustomId).label = `Page ${(options.pageStart || 0) + 1} of ${embeds.length}`;
         
         // TODO: add proper error message
         if (embeds.length === 0) 
@@ -157,7 +159,7 @@ export async function paginateList<T>(this: Reball, options: ListPaginationOptio
     if (options.rowType === "page-number")
         (row.components[
             row.components.findIndex((component) => component.custom_id === Defaults.PAGE_NUMBER_LABEL_ID)
-        ] as APIButtonComponent).label = `Page ${(options.pageStart || 0) + 1} of ${maxPages}`;
+        ] as APIButtonComponentWithCustomId).label = `Page ${(options.pageStart || 0) + 1} of ${maxPages}`;
 
     if (embed.fields === undefined)
         embed.fields = [];
@@ -239,7 +241,7 @@ export async function paginateListStr<T>(this: Reball, options: StringListPagina
     if (options.rowType === "page-number")
         (row.components[
             row.components.findIndex((component) => component.custom_id === Defaults.PAGE_NUMBER_LABEL_ID)
-        ] as APIButtonComponent).label = `Page ${(options.pageStart || 0) + 1} of ${maxPages}`;
+        ] as APIButtonComponentWithCustomId).label = `Page ${(options.pageStart || 0) + 1} of ${maxPages}`;
 
     let listSelection = list
             .slice(0, amountPerPage)
@@ -331,8 +333,9 @@ function collect(
         ] as APIButtonComponentWithCustomId;
     }
 
-    // TODO: handle interaction.channel === undefined error (likely solution: intents)
-    const collector = interaction.channel?.createMessageComponentCollector({
+    // Exclude<TextBasedChannel, PartialGroupDMChannel> feels a little bit like a hack; if there's 
+    // a better way, please fix
+    const collector = (interaction.channel as Exclude<TextBasedChannel, PartialGroupDMChannel>)?.createMessageComponentCollector({
         componentType: ComponentType.Button,
         dispose: true,
         message: message,
@@ -362,7 +365,7 @@ function collect(
             if (rowType === "page_number")
                 (row.components[
                     row.components.findIndex((component) => component.custom_id === Defaults.PAGE_NUMBER_LABEL_ID)
-                ] as APIButtonComponent).label = `Page ${page+1} of ${maxPages+1}`;
+                ] as APIButtonComponentWithCustomId).label = `Page ${page+1} of ${maxPages+1}`;
         } else if (btn.customId === Defaults.NEXT_PAGE_BUTTON_ID) {
             if (page >= maxPages) return;
             
@@ -382,7 +385,7 @@ function collect(
                 let pageNumberLabel = row.components.findIndex((component) => component.custom_id === Defaults.PAGE_NUMBER_LABEL_ID);
 
                 if (pageNumberLabel !== -1) {
-                    (row.components[pageNumberLabel] as APIButtonComponent).label = `Page ${page+1} of ${maxPages+1}`;
+                    (row.components[pageNumberLabel] as APIButtonComponentWithCustomId).label = `Page ${page+1} of ${maxPages+1}`;
                 }
             }
         } else if (btn.customId === Defaults.LEFT_END_PAGE_BUTTON_ID) {
