@@ -7,7 +7,7 @@ import {
     ComponentType 
 } from "discord.js";
 import { glob as _glob, GlobOptions, Path } from "glob";
-import { Command, CommandDataOption, CommandExecutor, Reball } from "./types";
+import { Command, CommandDataOption, CommandExecutor, Supersonic } from "./types";
 import { pathToFileURL } from "url";
 
 export enum OptionType {
@@ -43,11 +43,11 @@ export enum Defaults {
     NO_DESCRIPTION_PROVIDED = "No description provided.",
     COMMAND_NOT_FOUND = "The requested command does not exist.",
     UNEXPECTED_ERROR = "An unexpected error has occurred! If you are the developer, please view your console.",
-    PAGE_NUMBER_LABEL_ID = "reball/page_number_label",
-    LEFT_END_PAGE_BUTTON_ID = "reball/left_end_page",
-    RIGHT_END_PAGE_BUTTON_ID = "reball/right_end_page",
-    PREVIOUS_PAGE_BUTTON_ID = "reball/previous_page",
-    NEXT_PAGE_BUTTON_ID = "reball/next_page"
+    PAGE_NUMBER_LABEL_ID = "supersonic/page_number_label",
+    LEFT_END_PAGE_BUTTON_ID = "supersonic/left_end_page",
+    RIGHT_END_PAGE_BUTTON_ID = "supersonic/right_end_page",
+    PREVIOUS_PAGE_BUTTON_ID = "supersonic/previous_page",
+    NEXT_PAGE_BUTTON_ID = "supersonic/next_page"
 }
 
 export const PresetPaginationRowList: { [key: string]: APIActionRowComponent<APIButtonComponent>} = {
@@ -172,7 +172,7 @@ export async function glob(
 }
 
 export function handleSubcommand(
-    this: Reball, 
+    this: Supersonic, 
     commandModule: Command<ChatInputCommandInteraction>
 ): boolean {
     let commandData = commandModule.data;
@@ -246,7 +246,7 @@ export function handleSubcommand(
     return false;
 }
 
-export async function safeImportReballModule<T extends object>(modulePath: string): Promise<T> {
+export async function safeImportSupersonicModule<T extends object>(modulePath: string): Promise<T> {
     // ESBuild/tsup causes default exports to be double wrapped i.e., 
     // ```ts
     // export default r.module( ... );
@@ -261,7 +261,7 @@ export async function safeImportReballModule<T extends object>(modulePath: strin
     // Issue: https://github.com/evanw/esbuild/issues/2623
     // evanw's comment: https://github.com/evanw/esbuild/issues/2623#issuecomment-1287253436
     // 
-    // Evan says not to use default exports which is sound advice (?), but with the way Reball is set up,
+    // Evan says not to use default exports which is sound advice (?), but with the way Supersonic is set up,
     // default exports are required.
     const urlPath = pathToFileURL(modulePath).href;
     let module: T = (await import(urlPath)).default || await import(urlPath);

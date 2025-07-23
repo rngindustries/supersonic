@@ -1,5 +1,5 @@
 {
-  "name": "@rng-industries/reball",
+  "name": "@rngindustries/supersonic",
   "version": "1.9.1",
   "description": "A simple Discord framework for easy prototyping and building of Discord bots.",
   "main": "dist/index.js",

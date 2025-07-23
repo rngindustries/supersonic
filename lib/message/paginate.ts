@@ -13,14 +13,14 @@ import {
 import { 
     DynamicPaginationOptions, 
     ListPaginationOptions, 
-    Reball, 
+    Supersonic, 
     StaticPaginationOptions, 
     StaticPaginator, 
     StringListPaginationOptions 
 } from "../types";
 import { Defaults, PresetPaginationRowList } from "../helpers";
 
-export async function paginate(this: Reball, options: DynamicPaginationOptions) {
+export async function paginate(this: Supersonic, options: DynamicPaginationOptions) {
     let embed = options.embedOptions;
     const interaction = options.interaction;
     const onInitial = options.onInitial;
@@ -70,8 +70,8 @@ export async function paginate(this: Reball, options: DynamicPaginationOptions) 
     );
 }
 
-export async function paginateStatic(this: Reball, options: StaticPaginationOptions) {
-    let paginator = (async function(this: Reball) {
+export async function paginateStatic(this: Supersonic, options: StaticPaginationOptions) {
+    let paginator = (async function(this: Supersonic) {
         let embeds = paginator.embeds;
         const interaction = options.interaction;
 
@@ -135,7 +135,7 @@ export async function paginateStatic(this: Reball, options: StaticPaginationOpti
     return paginator;
 }
 
-export async function paginateList<T>(this: Reball, options: ListPaginationOptions<T>) {
+export async function paginateList<T>(this: Supersonic, options: ListPaginationOptions<T>) {
     let embed = options.embedOptions;
     let list = options.list;
     let amountPerPage = options.amountPerPage;
@@ -217,7 +217,7 @@ export async function paginateList<T>(this: Reball, options: ListPaginationOptio
     );
 }
 
-export async function paginateListStr<T>(this: Reball, options: StringListPaginationOptions<T>) {
+export async function paginateListStr<T>(this: Supersonic, options: StringListPaginationOptions<T>) {
     let list = options.list;
     let amountPerPage = options.amountPerPage;
     let maxPages = 1;

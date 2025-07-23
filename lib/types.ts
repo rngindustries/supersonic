@@ -19,7 +19,7 @@ import {
 
 export type SlashCommandInteraction = | ChatInputCommandInteraction | MessageContextMenuCommandInteraction | UserContextMenuCommandInteraction;
 
-export interface Reball extends HeaderClient, HeaderMessage, HeaderHandlers, HeaderUtils {
+export interface Supersonic extends HeaderClient, HeaderMessage, HeaderHandlers, HeaderUtils {
     commands: CommandList;
     components: ComponentList;
     events: Map<string, Event<keyof ClientEvents>>;
@@ -48,7 +48,7 @@ export interface HeaderHandlers {
     listener: (event: string, callback: (...args: ClientEvents[keyof ClientEvents]) => void) => Event<keyof ClientEvents>;
 
     use: <T extends CommandInteraction>(middlewareFn: CommandMiddleware<T>) => void;
-    handleMiddleware: <T extends CommandInteraction>(this: Reball, interaction: T, command: Command<T>) => void;
+    handleMiddleware: <T extends CommandInteraction>(this: Supersonic, interaction: T, command: Command<T>) => void;
 }
 
 export interface HeaderClient {

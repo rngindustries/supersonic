@@ -1,12 +1,12 @@
 import { CommandInteraction } from "discord.js";
-import { Command, CommandMiddleware, Reball } from "../types";
+import { Command, CommandMiddleware, Supersonic } from "../types";
 import { runCommandExecutor } from "./builtin";
  
-export function use<T extends CommandInteraction>(this: Reball, middlewareFn: CommandMiddleware<T>) {
+export function use<T extends CommandInteraction>(this: Supersonic, middlewareFn: CommandMiddleware<T>) {
     this.middleware.push(middlewareFn as CommandMiddleware<CommandInteraction>);
 }
 
-export function handleMiddleware<T extends CommandInteraction>(this: Reball, interaction: T, command: Command<T>) {
+export function handleMiddleware<T extends CommandInteraction>(this: Supersonic, interaction: T, command: Command<T>) {
     let middlewares: CommandMiddleware<T>[] = this.middleware || [];
     let step = 0;
 

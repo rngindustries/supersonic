@@ -16,14 +16,14 @@ import {
     CommandMiddleware, 
     Component, 
     Event, 
-    Reball
+    Supersonic
 } from "./types";
-import { Defaults, glob, handleSubcommand, safeImportReballModule } from "./helpers";
+import { Defaults, glob, handleSubcommand, safeImportSupersonicModule } from "./helpers";
 import { handleInteraction } from "./handlers/builtin";
 import { readFile } from "fs/promises";
 import _ from "lodash";
 
-export async function initialize(this: Reball, options?: ClientOptions | string): Promise<Client<boolean>> {
+export async function initialize(this: Supersonic, options?: ClientOptions | string): Promise<Client<boolean>> {
     let optionsJsonFile: string = "";
     if (typeof options === "string")
         optionsJsonFile = options;
@@ -43,7 +43,7 @@ export async function initialize(this: Reball, options?: ClientOptions | string)
     return client;
 }   
 
-export async function build(this: Reball, token: string) {
+export async function build(this: Supersonic, token: string) {
     if (!this.client || !this.opts) 
         return;
 
@@ -56,14 +56,14 @@ export async function build(this: Reball, token: string) {
     await initializeCommands.call(this);
 }
 
-async function initializeCommands(this: Reball) {
+async function initializeCommands(this: Supersonic) {
     let client = this.client as Client;
     
     if (this.opts.module && this.opts.commandDirectory) {
         const commandFiles = await glob(resolve(this.opts.commandDirectory, "**", "*.{ts,js}")) as string[];
         
         for (const commandFile of commandFiles) {
-            let commandModule: Command<CommandInteraction> = await safeImportReballModule(commandFile);
+            let commandModule: Command<CommandInteraction> = await safeImportSupersonicModule(commandFile);
             let commandData: CommandData = commandModule.data;
             
             if (this.opts.useDirectoryAsCategory && !commandData.category) {
@@ -171,12 +171,12 @@ async function initializeCommands(this: Reball) {
     }
 }
 
-async function initializeEvents(this: Reball) {
+async function initializeEvents(this: Supersonic) {
     if (this.opts.module && this.opts.eventDirectory) {
         const eventFiles = await glob(resolve(this.opts.eventDirectory, "**", "*.{ts,js}")) as string[];
         
         for (const eventFile of eventFiles) {
-            let eventModule: Event<keyof ClientEvents> = await safeImportReballModule(eventFile);
+            let eventModule: Event<keyof ClientEvents> = await safeImportSupersonicModule(eventFile);
 
             this.events.set(eventModule.alias || eventModule.name, eventModule);
         }
@@ -188,12 +188,12 @@ async function initializeEvents(this: Reball) {
     }
 }
 
-async function populateMiddleware(this: Reball) {
+async function populateMiddleware(this: Supersonic) {
     if (this.opts.module && this.opts.middlewareDirectory) {
         const middlewareFiles = await glob(resolve(this.opts.middlewareDirectory, "**", "+*.{ts,js}")) as string[];
 
         for (const middlewareFile of middlewareFiles) {
-            let middleware: CommandMiddleware<CommandInteraction> = await safeImportReballModule(middlewareFile); 
+            let middleware: CommandMiddleware<CommandInteraction> = await safeImportSupersonicModule(middlewareFile); 
             
             if (typeof middleware === "function")
                 this.middleware.push(middleware);
@@ -201,12 +201,12 @@ async function populateMiddleware(this: Reball) {
     }
 }
 
-async function populateComponents(this: Reball) {
+async function populateComponents(this: Supersonic) {
     if (this.opts.module && this.opts.componentDirectory) {
         const componentFiles = await glob(resolve(this.opts.componentDirectory, "**", "*.{ts,js}")) as string[];
 
         for (const componentFile of componentFiles) {
-            let component: Component = await safeImportReballModule(componentFile);
+            let component: Component = await safeImportSupersonicModule(componentFile);
             
             this.components.button.set(component.name, component);
         }

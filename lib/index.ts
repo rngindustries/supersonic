@@ -6,7 +6,7 @@ import {
     ComponentList, 
     Event,
     ClientOptions,
-    Reball
+    Supersonic
 } from "./types";
 import { 
     ChatInputCommandInteraction, 
@@ -38,4 +38,4 @@ export default {
     ...handlers,
     ...message,
     ...utils
-} as Reball;
+} as Supersonic;

@@ -7,9 +7,9 @@ import {
     UserContextMenuCommandInteraction 
 } from "discord.js";
 import { Defaults } from "../helpers";
-import { Command, CommandExecutor, Reball } from "../types";
+import { Command, CommandExecutor, Supersonic } from "../types";
 
-export function handleInteraction(this: Reball, interaction: Interaction) {
+export function handleInteraction(this: Supersonic, interaction: Interaction) {
     if (interaction.isCommand()) {
         const commandName = interaction.commandName;
         let command;

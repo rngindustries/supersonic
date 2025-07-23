@@ -1,4 +1,4 @@
-# reball
+# Supersonic
 
 A simple Discord framework for easy prototyping and building of Discord bots.
 
@@ -6,9 +6,9 @@ A simple Discord framework for easy prototyping and building of Discord bots.
 
 ```bash
 npm install discord.js
-npm install reball
+npm install @rngindustries/supersonic
 ```
 
 ## discord.js?
 
-Reball is supposed to be utilized alongside a Discord API library like discord.js.
+Supersonic is a framework built on top of the Discord API library discord.js and is designed to be used with it.

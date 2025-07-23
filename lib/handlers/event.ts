@@ -1,7 +1,7 @@
 import { ClientEvents } from "discord.js";
-import { Event, Reball } from "../types";
+import { Event, Supersonic } from "../types";
 
-export function listen(this: Reball, event: string, callback: (...args: ClientEvents[keyof ClientEvents]) => void) {
+export function listen(this: Supersonic, event: string, callback: (...args: ClientEvents[keyof ClientEvents]) => void) {
     let eventModule = parseEvent(event) as Event<keyof ClientEvents>;
     
     eventModule.execute = callback;

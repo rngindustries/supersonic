@@ -7,7 +7,7 @@ import {
     CommandExecutor, 
     CommandMiddleware,
     CommandPayload,
-    Reball
+    Supersonic
 } from "../types";
 import { 
     ApplicationCommandType, 
@@ -19,7 +19,7 @@ import {
 import { ChannelType, Defaults, handleSubcommand, OptionType } from "../helpers";
 
 export function module<T extends CommandInteraction>(
-    this: Reball, 
+    this: Supersonic, 
     payload: CommandPayload, 
     ...callbacks: CommandCallbacks<T>
 ): Command<T> {
@@ -42,7 +42,7 @@ export function module<T extends CommandInteraction>(
 }
 
 export function attach<T extends CommandInteraction>(
-    this: Reball, 
+    this: Supersonic, 
     payload: CommandPayload, 
     ...callbacks: CommandCallbacks<T>
 ): void {
@@ -64,7 +64,7 @@ export function attach<T extends CommandInteraction>(
     let commandExists = false;
 
     if (commandData.subName || commandData.groupName)
-        commandExists = handleSubcommand.call(this, commandModule as Command<ChatInputCommandInteraction>); 
+        commandExists = handleSubcommand.call(this, commandModule as unknown as Command<ChatInputCommandInteraction>); 
 
     if (!commandExists) {
         switch (commandModule.data.type) {
