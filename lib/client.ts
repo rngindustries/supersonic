@@ -47,8 +47,10 @@ export async function build(this: Supersonic, token: string) {
     if (!this.client || !this.opts) 
         return;
 
-    await populateMiddleware.call(this);
-    await populateComponents.call(this);
+    if (this.opts.module) {
+        await populateMiddleware.call(this);
+        await populateComponents.call(this);
+    }
     await initializeEvents.call(this);
     
     await this.client.login(token);
@@ -189,26 +191,28 @@ async function initializeEvents(this: Supersonic) {
 }
 
 async function populateMiddleware(this: Supersonic) {
-    if (this.opts.module && this.opts.middlewareDirectory) {
-        const middlewareFiles = await glob(resolve(this.opts.middlewareDirectory, "**", "+*.{ts,js}")) as string[];
+    if (!this.opts.middlewareDirectory) 
+        return;
 
-        for (const middlewareFile of middlewareFiles) {
-            let middleware: CommandMiddleware<CommandInteraction> = await safeImportSupersonicModule(middlewareFile); 
-            
-            if (typeof middleware === "function")
-                this.middleware.push(middleware);
-        }
+    const middlewareFiles = await glob(resolve(this.opts.middlewareDirectory, "**", "+*.{ts,js}")) as string[];
+
+    for (const middlewareFile of middlewareFiles) {
+        let middleware: CommandMiddleware<CommandInteraction> = await safeImportSupersonicModule(middlewareFile); 
+        
+        if (typeof middleware === "function")
+            this.middleware.push(middleware);
     }
 }
 
 async function populateComponents(this: Supersonic) {
-    if (this.opts.module && this.opts.componentDirectory) {
-        const componentFiles = await glob(resolve(this.opts.componentDirectory, "**", "*.{ts,js}")) as string[];
+    if (!this.opts.componentDirectory)
+        return;
+    
+    const componentFiles = await glob(resolve(this.opts.componentDirectory, "**", "*.{ts,js}")) as string[];
 
-        for (const componentFile of componentFiles) {
-            let component: Component = await safeImportSupersonicModule(componentFile);
-            
-            this.components.button.set(component.name, component);
-        }
+    for (const componentFile of componentFiles) {
+        let component: Component = await safeImportSupersonicModule(componentFile);
+        
+        this.components.button.set(component.name, component);
     }
 }

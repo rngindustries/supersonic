@@ -42,25 +42,27 @@ export function module<T extends CommandInteraction>(
 }
 
 export function attach<T extends CommandInteraction>(
-    this: Supersonic, 
-    payload: CommandPayload, 
+    this: Supersonic,
+    commandModule: Command<T>,
+    // CommandCallbacks requires CommandExecutor to be present so we have 
+    // to force callbacks to be empty
+    ...callbacks: [] 
+): void;
+export function attach<T extends CommandInteraction>(
+    this: Supersonic,
+    payload: CommandPayload,
     ...callbacks: CommandCallbacks<T>
+): void;
+export function attach<T extends CommandInteraction>(
+    this: Supersonic, 
+    command: Command<T> | CommandPayload, 
+    ...callbacks: [] | CommandCallbacks<T>
 ): void {
-    let commandModule = {} as Command<T>;
-    let commandData = parseCommand(payload);
-
-    commandModule.data = commandData;
-    commandModule.middleware = callbacks.slice(0, callbacks.length-1) as CommandMiddleware<T>[];
-    commandModule.execute = {};
-
-    const executor = callbacks[callbacks.length-1] as CommandExecutor<T>;
-    if (commandData.groupName && commandData.subName)
-        commandModule.execute[`${commandData.groupName}:${commandData.subName}`] = executor;
-    else if (!commandData.groupName && commandData.subName)
-        commandModule.execute[commandData.subName] = executor;
-    else
-        commandModule.execute["(main)"] = executor;
-
+    let commandModule = "data" in command 
+        ? command as Command<T> 
+        : (module as typeof module<T>).call(this, command, ...callbacks as CommandCallbacks<T>); 
+    let commandData = commandModule.data;
+    
     let commandExists = false;
 
     if (commandData.subName || commandData.groupName)
