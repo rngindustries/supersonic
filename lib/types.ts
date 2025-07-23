@@ -36,20 +36,28 @@ export interface HeaderMessage {
     paginateStatic: (options: StaticPaginationOptions) => Promise<StaticPaginator>;
 }
 
-export interface HeaderHandlers {
+export interface HeaderCommandHandler {
     module: <T extends CommandInteraction>(payload: CommandPayload, ...callbacks: CommandCallbacks<T>) => Command<T>;
     attach: <T extends CommandInteraction>(payload: CommandPayload, ...callbacks: CommandCallbacks<T>) => void;
     parseCommand: (payload: CommandPayload) => CommandData;
+}
 
+export interface HeaderComponentHandler {
     component: <T extends MessageComponentInteraction>(name: string, callback: (interaction: T) => void) => Component;
     click: (name: string, callback: (interaction: ButtonInteraction) => void) => void;
+}
 
+export interface HeaderEventHandler {
     listen: (event: string, callback: (...args: ClientEvents[keyof ClientEvents]) => void) => void;
     listener: (event: string, callback: (...args: ClientEvents[keyof ClientEvents]) => void) => Event<keyof ClientEvents>;
+}
 
+export interface HeaderMiddlewareHandler {
     use: <T extends CommandInteraction>(middlewareFn: CommandMiddleware<T>) => void;
     handleMiddleware: <T extends CommandInteraction>(this: Supersonic, interaction: T, command: Command<T>) => void;
 }
+
+export type HeaderHandlers = & HeaderCommandHandler & HeaderComponentHandler & HeaderEventHandler & HeaderMiddlewareHandler;
 
 export interface HeaderClient {
     initialize: (options?: ClientOptions | string) => Promise<Client<boolean>>;
