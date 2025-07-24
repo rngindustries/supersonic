@@ -19,7 +19,6 @@ import {
 import { ChannelType, Defaults, handleSubcommand, OptionType } from "../helpers";
 
 export function module<T extends CommandInteraction>(
-    this: Supersonic, 
     payload: CommandPayload, 
     ...callbacks: CommandCallbacks<T>
 ): Command<T> {
@@ -60,7 +59,7 @@ export function attach<T extends CommandInteraction>(
 ): void {
     let commandModule = "data" in command 
         ? command as Command<T> 
-        : (module as typeof module<T>).call(this, command, ...callbacks as CommandCallbacks<T>); 
+        : module(command, ...callbacks as CommandCallbacks<T>); 
     let commandData = commandModule.data;
     
     let commandExists = false;

@@ -1,20 +1,36 @@
 import { ClientEvents } from "discord.js";
 import { Event, Supersonic } from "../types";
 
-export function listen(this: Supersonic, event: string, callback: (...args: ClientEvents[keyof ClientEvents]) => void) {
-    let eventModule = parseEvent(event) as Event<keyof ClientEvents>;
-    
-    eventModule.execute = callback;
-    
-    this.events.set(eventModule.alias || eventModule.name, eventModule);
-}
-
-export function listener(event: string, callback: (...args: ClientEvents[keyof ClientEvents]) => void) {
+export function listener(
+    event: string, 
+    callback: (...args: ClientEvents[keyof ClientEvents]) => void
+): Event<keyof ClientEvents> {
     let eventModule = parseEvent(event) as Event<keyof ClientEvents>;
 
     eventModule.execute = callback;
 
     return eventModule;
+}
+
+export function listen(
+    this: Supersonic,
+    eventModule: Event<keyof ClientEvents>
+): void;
+export function listen(
+    this: Supersonic,
+    event: string,
+    callback: (...args: ClientEvents[keyof ClientEvents]) => void
+): void;
+export function listen(
+    this: Supersonic, 
+    event: string | Event<keyof ClientEvents>, 
+    callback?: (...args: ClientEvents[keyof ClientEvents]) => void
+): void {
+    let eventModule = typeof event === "string"
+        ? listener(event, callback!)
+        : event;
+    
+    this.events.set(eventModule.alias || eventModule.name, eventModule);
 }
 
 export function parseEvent(event: string) {
