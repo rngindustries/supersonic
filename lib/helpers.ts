@@ -7,34 +7,6 @@ import {
 import { glob as _glob, GlobOptions, Path } from "glob";
 import { pathToFileURL } from "url";
 
-export enum OptionType {
-    str = 3,
-    int = 4,
-    bool = 5,
-    user = 6,
-    chan = 7,
-    role = 8,
-    ment = 9,
-    num = 10,
-    att = 11
-}
-
-export enum ChannelType {
-    gt = 0,
-    dm = 1,
-    gv = 2,
-    gdm = 3,
-    gc = 4,
-    ga = 5,
-    at = 10,
-    put = 11,
-    prt = 12,
-    gsv = 13,
-    gd = 14,
-    gf = 15,
-    gm = 16
-}
-
 export enum Defaults {
     DEFAULT_CATEGORY = "general",
     NO_DESCRIPTION_PROVIDED = "No description provided.",

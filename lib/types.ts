@@ -3,6 +3,7 @@ import {
     APIButtonComponentWithCustomId,
     APIEmbed,
     APIMessage,
+    ApplicationCommandOptionType,
     ApplicationCommandType,
     ButtonInteraction,
     ChatInputCommandInteraction,
@@ -81,19 +82,29 @@ export interface Command<T extends CommandInteraction> {
 }
 
 export interface CommandPayload {
-    name: string;
-    type?: ApplicationCommandType;
+    command: string;
     description?: string;
     groupDescription?: string;
     subDescription?: string;
-    mod?: string;
-    options: CommandPayloadOption[];
+    category?: string;
+    nsfw?: boolean;
+    type?: ApplicationCommandType;
+    options?: CommandPayloadOption[];
 }
 
 export interface CommandPayloadOption {
     name: string;
     description?: string;
-    mod: string;
+    type?: Exclude<
+        ApplicationCommandOptionType, 
+        ApplicationCommandOptionType.Subcommand | ApplicationCommandOptionType.SubcommandGroup
+    >;
+    required?: boolean;
+    autocomplete?: boolean;
+    choices?: Choice[];
+    min?: number;
+    max?: number;
+    channelTypes?: number[];
 }
 
 export interface CommandData {
@@ -113,8 +124,8 @@ export interface CommandDataOption {
     name: string;
     description: string;
     type: number;
-    required: boolean;
-    autocomplete: boolean;
+    required?: boolean;
+    autocomplete?: boolean;
     choices?: Choice[];
     minValue?: number;
     maxValue?: number;

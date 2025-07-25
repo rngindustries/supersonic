@@ -1,5 +1,4 @@
 import { 
-    Choice,
     Command,
     CommandCallbacks, 
     CommandData, 
@@ -17,7 +16,7 @@ import {
     MessageContextMenuCommandInteraction, 
     UserContextMenuCommandInteraction 
 } from "discord.js";
-import { ChannelType, Defaults, OptionType } from "../helpers";
+import { Defaults } from "../helpers";
 
 export function module<T extends CommandInteraction>(
     payload: CommandPayload, 
@@ -87,6 +86,7 @@ export function createSubcommand(
     this: Supersonic, 
     commandModule: Command<ChatInputCommandInteraction>
 ): boolean {
+    // returns whether command already exists in Supersonic object
     const commandData = commandModule.data;
 
     if (commandData.groupName && commandData.subName) {
@@ -159,48 +159,16 @@ export function createSubcommand(
 }
 
 export function parseCommand(payload: CommandPayload): CommandData {
-    const MODIFIER_REGEX = /(\w+)=(\[.*?\]|'.*?'|\S+)/g;
-    
     let commandData = {} as CommandData;
 
-    commandData.type = ApplicationCommandType.ChatInput;
+    commandData.type = payload.type || ApplicationCommandType.ChatInput;
     commandData.description = payload.description || Defaults.NO_DESCRIPTION_PROVIDED;
     commandData.subDescription = payload.subDescription || Defaults.NO_DESCRIPTION_PROVIDED;
     commandData.groupDescription = payload.groupDescription || Defaults.NO_DESCRIPTION_PROVIDED;
     commandData.options = [];
     
-    if (payload.mod) {
-        let commandModifiers = payload.mod.matchAll(MODIFIER_REGEX);
-        
-        for (const mod of commandModifiers) {
-            let key = mod[1] as string;
-            let value = mod[2] as string;
-
-            if (value.startsWith("'") && value.endsWith("'"))
-                value = value.substring(1, value.length-1);
-
-            switch (key) {
-                case "type":
-                    if (value === "c")
-                        commandData.type = ApplicationCommandType.ChatInput;
-                    else if (value === "u")
-                        commandData.type = ApplicationCommandType.User;
-                    else if (value === "m")
-                        commandData.type = ApplicationCommandType.Message;
-                    break;
-                case "cat":
-                    commandData.category = value;
-                    break;
-                case "nsfw":
-                    commandData.nsfw = value.startsWith("y");
-                    break;
-            } 
-        }
-    }
-
-    // command type needs to be resolved before applying name
     if (commandData.type === ApplicationCommandType.ChatInput) {
-        let nameFragments = payload.name.split(":");
+        let nameFragments = payload.command.split(":");
         commandData.name = nameFragments[0] as string;
     
         if (nameFragments[1] && !nameFragments[2]) {
@@ -210,81 +178,31 @@ export function parseCommand(payload: CommandPayload): CommandData {
             commandData.subName = nameFragments[2];
         }    
     } else {
-        commandData.name = payload.name;
+        commandData.name = payload.command;
     }
 
-    for (const option of payload.options) {
+    for (const option of payload.options || []) {
         let commandOption = {} as CommandDataOption;
-
+        
+        if (option.type)
+            commandOption.type = option.type;
         commandOption.name = option.name;
         commandOption.description = option.description || Defaults.NO_DESCRIPTION_PROVIDED;
-        
-        let optionModifiers = option.mod.matchAll(MODIFIER_REGEX);
+        commandOption.required = option.required;
+        commandOption.channelTypes = option.channelTypes;
+        commandOption.choices = option.choices;
+        commandOption.autocomplete = option.autocomplete;
 
-        for (const mod of optionModifiers) {
-            let key = mod[1] as string;
-            let value = mod[2] as string;
-
-            if (value.startsWith("'") && value.endsWith("'"))
-                value = value.substring(1, value.length-1);
-
-            switch (key) {
-                case "type":
-                    let [optionality, optionType] = value.split(",") as [string, string];
-
-                    commandOption.required = optionality === "r";
-                    commandOption.type = OptionType[optionType as keyof typeof OptionType];
-
-                    break;
-                case "channels": 
-                    let channelTypes = value.split(",").map(
-                        type => ChannelType[type as keyof typeof ChannelType]
-                    );
-
-                    commandOption.channelTypes = channelTypes;
-
-                    break;
-                case "choices": 
-                    if (value.startsWith("[") && value.endsWith("]")) 
-                        value = value.substring(1, value.length-1);     
-
-                    let choices = value.split(",").map(
-                        choice => {
-                            let [choiceName, choiceValue] = choice.split(":");
-
-                            return {
-                                name: choiceName,
-                                value: choiceValue
-                            } as Choice;
-                        }
-                    );
-
-                    if (
-                        [OptionType.str, OptionType.int, OptionType.num].includes(commandOption.type) &&
-                        !commandOption.autocomplete &&
-                        choices.length <= 25
-                    ) 
-                        commandOption.choices = choices;
-
-                    break;
-                case "min":
-                    commandOption[
-                        commandOption.type === OptionType.str 
-                        ? "minLength" 
-                        : "minValue"
-                    ] = parseInt(value);
-                    break;
-                case "max":
-                    commandOption[
-                        commandOption.type === OptionType.str 
-                        ? "maxLength" 
-                        : "maxValue"
-                    ] = parseInt(value);
-                    break;
-                case "ac":
-                    commandOption.autocomplete = value.startsWith("y");
-                    break;
-            }
+        if (commandOption.type === ApplicationCommandOptionType.String) {
+            if (option.min)
+                commandOption.minLength = option.min;
+            if (option.max)
+                commandOption.maxLength = option.max;
+        } else if (commandOption.type === ApplicationCommandOptionType.Integer) {
+            if (option.min)
+                commandOption.minValue = option.min;
+            if (option.max)
+                commandOption.maxValue = option.max;
         }
 
         commandData.options.push(commandOption);
