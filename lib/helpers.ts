@@ -1,13 +1,10 @@
 import { 
     APIActionRowComponent, 
     APIButtonComponent, 
-    ApplicationCommandOptionType, 
-    ButtonStyle, 
-    ChatInputCommandInteraction, 
+    ButtonStyle,  
     ComponentType 
 } from "discord.js";
 import { glob as _glob, GlobOptions, Path } from "glob";
-import { Command, CommandDataOption, CommandExecutor, Supersonic } from "./types";
 import { pathToFileURL } from "url";
 
 export enum OptionType {
@@ -171,85 +168,10 @@ export async function glob(
     return await _glob(pattern);
 }
 
-export function handleSubcommand(
-    this: Supersonic, 
-    commandModule: Command<ChatInputCommandInteraction>
-): boolean {
-    let commandData = commandModule.data;
-
-    if (commandData.groupName && commandData.subName) {
-        let existingCommand = this.commands.chat.get(commandData.name);
-        let subOption = {
-            type: ApplicationCommandOptionType.Subcommand,
-            name: commandData.subName,
-            description: commandData.subDescription || Defaults.NO_DESCRIPTION_PROVIDED,
-            options: commandData.options
-        } as CommandDataOption;
-        let groupOption = {
-            type: ApplicationCommandOptionType.SubcommandGroup,
-            name: commandData.groupName,
-            description: commandData.groupDescription || Defaults.NO_DESCRIPTION_PROVIDED,
-            options: [subOption]
-        } as CommandDataOption;
-
-        if (existingCommand) {
-            let existingGroup = existingCommand.data.options.findIndex(
-                (option: CommandDataOption) => 
-                    option.type === ApplicationCommandOptionType.SubcommandGroup &&
-                    option.name === commandData.groupName  
-            );
-
-            if (existingGroup) {
-                existingCommand.data.options[existingGroup]?.options?.push(subOption);
-            } else {
-                existingCommand.data.options.push(groupOption);
-            }
-        
-            const executor = commandModule.execute[`${commandData.groupName}:${commandData.subName}`] as CommandExecutor<ChatInputCommandInteraction>;
-            existingCommand.execute[`${commandData.groupName}:${commandData.subName}`] = executor;
-
-            return true;
-        } else {
-            commandModule.data.options = [groupOption];
-            commandModule.data.subDescription = undefined;
-            commandModule.data.groupDescription = undefined;
-            commandModule.data.subName = undefined;
-            commandModule.data.groupName = undefined;
-
-            return false;
-        }
-    } else if (commandData.subName) {
-        let existingCommand = this.commands.chat.get(commandData.name);
-        let subOption = {
-            type: ApplicationCommandOptionType.Subcommand,
-            name: commandData.subName,
-            description: commandData.subDescription || Defaults.NO_DESCRIPTION_PROVIDED,
-            options: commandData.options
-        } as CommandDataOption;
-
-        if (existingCommand) {
-            existingCommand.data.options.push(subOption);
-
-            const executor = commandModule.execute[commandData.subName] as CommandExecutor<ChatInputCommandInteraction>;
-            existingCommand.execute[commandData.subName] = executor;
-            
-            return true;
-        } else {
-            commandModule.data.options = [subOption];
-            commandModule.data.subDescription = undefined;
-            commandModule.data.subName = undefined;
-
-            return false;
-        }
-    }
-
-    return false;
-}
-
 export async function safeImportSupersonicModule<T extends object>(modulePath: string): Promise<T> {
     // ESBuild/tsup causes default exports to be double wrapped i.e., 
     // ```ts
-    // export default r.module( ... );
+    // export default s.module( ... );
     // ```
     // results in:
     //  {

@@ -18,8 +18,9 @@ import {
     Event, 
     Supersonic
 } from "./types";
-import { Defaults, glob, handleSubcommand, safeImportSupersonicModule } from "./helpers";
+import { Defaults, glob, safeImportSupersonicModule } from "./helpers";
 import { handleInteraction } from "./handlers/builtin";
+import { createSubcommand } from "./handlers/command";
 import { readFile } from "fs/promises";
 import _ from "lodash";
 
@@ -84,7 +85,7 @@ async function initializeCommands(this: Supersonic) {
             let commandExists = false;
             
             if (commandData.subName || commandData.groupName)
-                commandExists = handleSubcommand.call(this, commandModule); 
+                commandExists = createSubcommand.call(this, commandModule); 
 
             if (!commandExists) {
                 switch (commandData.type) {

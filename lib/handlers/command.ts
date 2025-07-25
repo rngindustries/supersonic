@@ -10,13 +10,14 @@ import {
     Supersonic
 } from "../types";
 import { 
+    ApplicationCommandOptionType,
     ApplicationCommandType, 
     ChatInputCommandInteraction,
     CommandInteraction, 
     MessageContextMenuCommandInteraction, 
     UserContextMenuCommandInteraction 
 } from "discord.js";
-import { ChannelType, Defaults, handleSubcommand, OptionType } from "../helpers";
+import { ChannelType, Defaults, OptionType } from "../helpers";
 
 export function module<T extends CommandInteraction>(
     payload: CommandPayload, 
@@ -65,7 +66,7 @@ export function attach<T extends CommandInteraction>(
     let commandExists = false;
 
     if (commandData.subName || commandData.groupName)
-        commandExists = handleSubcommand.call(this, commandModule as unknown as Command<ChatInputCommandInteraction>); 
+        commandExists = createSubcommand.call(this, commandModule as unknown as Command<ChatInputCommandInteraction>); 
 
     if (!commandExists) {
         switch (commandModule.data.type) {
@@ -80,6 +81,81 @@ export function attach<T extends CommandInteraction>(
                 break;
         }
     }
+}
+
+export function createSubcommand(
+    this: Supersonic, 
+    commandModule: Command<ChatInputCommandInteraction>
+): boolean {
+    const commandData = commandModule.data;
+
+    if (commandData.groupName && commandData.subName) {
+        let existingCommand = this.commands.chat.get(commandData.name);
+        let subOption = {
+            type: ApplicationCommandOptionType.Subcommand,
+            name: commandData.subName,
+            description: commandData.subDescription || Defaults.NO_DESCRIPTION_PROVIDED,
+            options: commandData.options
+        } as CommandDataOption;
+        let groupOption = {
+            type: ApplicationCommandOptionType.SubcommandGroup,
+            name: commandData.groupName,
+            description: commandData.groupDescription || Defaults.NO_DESCRIPTION_PROVIDED,
+            options: [subOption]
+        } as CommandDataOption;
+
+        if (existingCommand) {
+            let existingGroup = existingCommand.data.options.findIndex(
+                (option: CommandDataOption) => 
+                    option.type === ApplicationCommandOptionType.SubcommandGroup &&
+                    option.name === commandData.groupName  
+            );
+
+            if (existingGroup) {
+                existingCommand.data.options[existingGroup]?.options?.push(subOption);
+            } else {
+                existingCommand.data.options.push(groupOption);
+            }
+        
+            const executor = commandModule.execute[`${commandData.groupName}:${commandData.subName}`] as CommandExecutor<ChatInputCommandInteraction>;
+            existingCommand.execute[`${commandData.groupName}:${commandData.subName}`] = executor;
+
+            return true;
+        } else {
+            commandModule.data.options = [groupOption];
+            commandModule.data.subDescription = undefined;
+            commandModule.data.groupDescription = undefined;
+            commandModule.data.subName = undefined;
+            commandModule.data.groupName = undefined;
+
+            return false;
+        }
+    } else if (commandData.subName) {
+        let existingCommand = this.commands.chat.get(commandData.name);
+        let subOption = {
+            type: ApplicationCommandOptionType.Subcommand,
+            name: commandData.subName,
+            description: commandData.subDescription || Defaults.NO_DESCRIPTION_PROVIDED,
+            options: commandData.options
+        } as CommandDataOption;
+
+        if (existingCommand) {
+            existingCommand.data.options.push(subOption);
+
+            const executor = commandModule.execute[commandData.subName] as CommandExecutor<ChatInputCommandInteraction>;
+            existingCommand.execute[commandData.subName] = executor;
+            
+            return true;
+        } else {
+            commandModule.data.options = [subOption];
+            commandModule.data.subDescription = undefined;
+            commandModule.data.subName = undefined;
+
+            return false;
+        }
+    }
+
+    return false;
 }
 
 export function parseCommand(payload: CommandPayload): CommandData {
