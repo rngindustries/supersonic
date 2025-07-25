@@ -22,7 +22,7 @@ export type SlashCommandInteraction = | ChatInputCommandInteraction | MessageCon
 export interface Supersonic extends HeaderClient, HeaderMessage, HeaderHandlers, HeaderUtils {
     commands: CommandList;
     components: ComponentList;
-    events: Map<string, Event<keyof ClientEvents>>;
+    events: Map<keyof ClientEvents, Event<keyof ClientEvents>[]>;
     middleware: CommandMiddleware<CommandInteraction>[];
     categories: Set<string>;
     opts: ClientOptions;

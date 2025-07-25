@@ -63,21 +63,24 @@ async function initializeCommands(this: Supersonic) {
     
     if (this.opts.module && this.opts.commandDirectory) {
         const commandFiles = await glob(resolve(this.opts.commandDirectory, "**", "*.{ts,js}")) as string[];
-        
-        for (const commandFile of commandFiles) {
-            let commandModule: Command<CommandInteraction> = await safeImportSupersonicModule(commandFile);
-            let commandData: CommandData = commandModule.data;
-            
+        const commandModules = await Promise.all(
+            commandFiles.map(commandFile => safeImportSupersonicModule(commandFile)) 
+        ) as Command<CommandInteraction>[];
+
+        for (let i = 0; i < commandModules.length; i++) {
+            const commandModule = commandModules[i] as Command<CommandInteraction>;
+            const commandData = commandModule.data;
+
             if (this.opts.useDirectoryAsCategory && !commandData.category) {
                 // use_directory_as_category does not override defined categories
-                let commandDirectory = basename(dirname(commandFile));
+                let commandDirectory = basename(dirname(commandFiles[i] as string));
                
                 if (commandDirectory !== basename(this.opts.commandDirectory))
                     commandData.category = commandDirectory;
                 else
                     commandData.category = this.opts.defaultCategory || Defaults.DEFAULT_CATEGORY;
-            }
-
+            }  
+            
             let commandExists = false;
             
             if (commandData.subName || commandData.groupName)
@@ -176,17 +179,30 @@ async function initializeCommands(this: Supersonic) {
 async function initializeEvents(this: Supersonic) {
     if (this.opts.module && this.opts.eventDirectory) {
         const eventFiles = await glob(resolve(this.opts.eventDirectory, "**", "*.{ts,js}")) as string[];
-        
-        for (const eventFile of eventFiles) {
-            let eventModule: Event<keyof ClientEvents> = await safeImportSupersonicModule(eventFile);
+        const eventModules = await Promise.all(
+            eventFiles.map(eventFile => safeImportSupersonicModule(eventFile))
+        ) as Event<keyof ClientEvents>[];
 
-            this.events.set(eventModule.alias || eventModule.name, eventModule);
+        for (const eventModule of eventModules) {
+            const eventName = eventModule.name as keyof ClientEvents;
+
+            if (!this.events.has(eventName))
+                this.events.set(eventName, []);
+
+            this.events.get(eventName)!.push(eventModule);
         }
     }
+    
 
-    for (const event of this.events) {
-        let eventModule: Event<keyof ClientEvents> = event[1];
-        (this.client as Client)[eventModule.once ? "once" : "on"](eventModule.name, eventModule.execute.bind(this));
+    for (const [eventName, eventModules] of this.events.entries()) {
+        const eventExecutor = async (...args: ClientEvents[typeof eventName]) => {
+            for (const eventModule of eventModules) {
+                eventModule.execute.call(this, ...args);
+            }
+        };
+
+        const useOnce = eventModules.some(eventModule => eventModule.once);
+        (this.client as Client)[useOnce ? "once" : "on"](eventName, eventExecutor);
     }
 }
 
@@ -195,10 +211,11 @@ async function populateMiddleware(this: Supersonic) {
         return;
 
     const middlewareFiles = await glob(resolve(this.opts.middlewareDirectory, "**", "+*.{ts,js}")) as string[];
+    const middlewares = await Promise.all(
+        middlewareFiles.map(middlewareFile => safeImportSupersonicModule(middlewareFile))
+    ) as CommandMiddleware<CommandInteraction>[];
 
-    for (const middlewareFile of middlewareFiles) {
-        let middleware: CommandMiddleware<CommandInteraction> = await safeImportSupersonicModule(middlewareFile); 
-        
+    for (const middleware of middlewares) {
         if (typeof middleware === "function")
             this.middleware.push(middleware);
     }
@@ -209,10 +226,11 @@ async function populateComponents(this: Supersonic) {
         return;
     
     const componentFiles = await glob(resolve(this.opts.componentDirectory, "**", "*.{ts,js}")) as string[];
+    const components = await Promise.all(
+        componentFiles.map(componentFile => safeImportSupersonicModule(componentFile))
+    ) as Component[];
 
-    for (const componentFile of componentFiles) {
-        let component: Component = await safeImportSupersonicModule(componentFile);
-        
+    for (const component of components) {
         this.components.button.set(component.name, component);
     }
 }

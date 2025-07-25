@@ -26,11 +26,15 @@ export function listen(
     event: string | Event<keyof ClientEvents>, 
     callback?: (...args: ClientEvents[keyof ClientEvents]) => void
 ): void {
-    let eventModule = typeof event === "string"
+    const eventModule = typeof event === "string"
         ? listener(event, callback!)
         : event;
-    
-    this.events.set(eventModule.alias || eventModule.name, eventModule);
+    const eventName = eventModule.name as keyof ClientEvents;
+
+    if (!this.events.has(eventName))
+        this.events.set(eventName, []);
+
+    this.events.get(eventName)!.push(eventModule);
 }
 
 export function parseEvent(event: string) {

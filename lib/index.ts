@@ -30,7 +30,7 @@ export function createSupersonic(): Supersonic {
         components: {
             button: new Map<string, Component>()
         } as ComponentList,
-        events: new Map<string, Event<keyof ClientEvents>>(),
+        events: new Map<keyof ClientEvents, Event<keyof ClientEvents>[]>(),
         middleware: [] as CommandMiddleware<CommandInteraction>[],
         categories: new Set<string>(),
         opts: {} as ClientOptions,
