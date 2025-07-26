@@ -7,6 +7,18 @@ import {
 import { glob as _glob, GlobOptions, Path } from "glob";
 import { pathToFileURL } from "url";
 
+export enum OptionType {
+    string = 3,
+    int = 4,
+    bool = 5,
+    user = 6,
+    channel = 7,
+    role = 8,
+    mentionable = 9,
+    number = 10,
+    attachment = 11
+}
+
 export enum Defaults {
     DEFAULT_CATEGORY = "general",
     NO_DESCRIPTION_PROVIDED = "No description provided.",

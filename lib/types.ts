@@ -40,7 +40,6 @@ export interface HeaderMessage {
 export interface HeaderCommandHandler {
     module: <T extends CommandInteraction>(payload: CommandPayload, ...callbacks: CommandCallbacks<T>) => Command<T>;
     attach: <T extends CommandInteraction>(payload: CommandPayload, ...callbacks: CommandCallbacks<T>) => void;
-    parseCommand: (payload: CommandPayload) => CommandData;
 }
 
 export interface HeaderComponentHandler {

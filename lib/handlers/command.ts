@@ -16,14 +16,14 @@ import {
     MessageContextMenuCommandInteraction, 
     UserContextMenuCommandInteraction 
 } from "discord.js";
-import { Defaults } from "../helpers";
+import { Defaults, OptionType } from "../helpers";
 
 export function module<T extends CommandInteraction>(
     payload: CommandPayload, 
     ...callbacks: CommandCallbacks<T>
 ): Command<T> {
     let commandModule = {} as Command<T>;
-    let commandData = parseCommand(payload);
+    let commandData = parseCommandPayload(payload);
 
     commandModule.data = commandData;
     commandModule.middleware = callbacks.slice(0, callbacks.length-1) as CommandMiddleware<T>[];
@@ -158,7 +158,7 @@ export function createSubcommand(
     return false;
 }
 
-export function parseCommand(payload: CommandPayload): CommandData {
+export function parseCommandPayload(payload: CommandPayload): CommandData {
     let commandData = {} as CommandData;
 
     commandData.type = payload.type || ApplicationCommandType.ChatInput;
@@ -167,32 +167,31 @@ export function parseCommand(payload: CommandPayload): CommandData {
     commandData.groupDescription = payload.groupDescription || Defaults.NO_DESCRIPTION_PROVIDED;
     commandData.options = [];
     
-    if (commandData.type === ApplicationCommandType.ChatInput) {
-        let nameFragments = payload.command.split(":");
-        commandData.name = nameFragments[0] as string;
-    
-        if (nameFragments[1] && !nameFragments[2]) {
-            commandData.subName = nameFragments[1];
-        } else if (nameFragments[1] && nameFragments[2]) {
-            commandData.groupName = nameFragments[1];
-            commandData.subName = nameFragments[2];
-        }    
-    } else {
-        commandData.name = payload.command;
-    }
+    if (
+        payload.command.startsWith("m")
+        || payload.command.startsWith("message")
+        || payload.command.startsWith("u")
+        || payload.command.startsWith("user")
+    ) 
+        parseUiCommandShorthand(payload.command, commandData);
+    else
+        parseCommandShorthand(payload.command, commandData);
 
     for (const option of payload.options || []) {
         let commandOption = {} as CommandDataOption;
+        let existingOptIdx = commandData.options.findIndex(opt => opt.name === option.name);
+
+        if (existingOptIdx !== -1)
+            commandOption = commandData.options[existingOptIdx]!;
         
-        if (option.type)
-            commandOption.type = option.type;
+        if (option.type) commandOption.type = option.type;
+        if (option.required) commandOption.required = option.required;
+        if (option.autocomplete) commandOption.autocomplete = option.autocomplete;
         commandOption.name = option.name;
         commandOption.description = option.description || Defaults.NO_DESCRIPTION_PROVIDED;
-        commandOption.required = option.required;
         commandOption.channelTypes = option.channelTypes;
         commandOption.choices = option.choices;
-        commandOption.autocomplete = option.autocomplete;
-
+        
         if (commandOption.type === ApplicationCommandOptionType.String) {
             if (option.min)
                 commandOption.minLength = option.min;
@@ -205,8 +204,129 @@ export function parseCommand(payload: CommandPayload): CommandData {
                 commandOption.maxValue = option.max;
         }
 
-        commandData.options.push(commandOption);
+        if (existingOptIdx === -1)
+            commandData.options.push(commandOption);
     }
 
     return commandData;
+}
+
+export function parseCommandShorthand(
+    command: string, 
+    commandData: CommandData
+): void {
+    const SHORTHAND_REGEX = /^\/([\w-]{1,32})((?:\:[\w-]{1,32}){0,2})((?:\s(?:\[|<)[\w-]{1,32}\:(?:string|int|bool|user|channel|role|mentionable|number|attachment)(?:\:(?:min|max)=\d+){0,2}(?:\]|>))+)*((?:\s-\w+)+)*$/;
+
+    const commandTokens = SHORTHAND_REGEX.exec(command) as string[] | null;
+
+    if (!commandTokens)
+        return;
+
+    const name = commandTokens[1]!;
+    const subNames = commandTokens[2];
+    const options = commandTokens[3];
+    const flags = commandTokens[4];
+
+    commandData.name = name;
+
+    if (subNames) {
+        const subNameList = subNames.substring(1).split(":");
+
+        if (subNameList.length > 1) {
+            commandData.groupName = subNameList[0];
+            commandData.subName = subNameList[1];
+        } else if (subNameList.length === 1) {
+            commandData.subName = subNameList[0];
+        }
+    }
+
+    if (options) {
+        const optionList = options.substring(1).split(" ");
+
+        for (let option of optionList) {
+            let commandOption = {} as CommandDataOption;
+            
+            const required = option.startsWith("<");
+
+            option = option.substring(1, option.length - 1);
+            
+            const optionParts = option.split(":");
+            const optionName = optionParts[0]!;
+            const optionType = optionParts[1]!;
+
+            commandOption.name = optionName;
+            commandOption.type = OptionType[optionType as keyof typeof OptionType];
+            commandOption.required = required;
+            
+            if (optionParts.length > 2) {
+                for (const optionPart of optionParts) {
+                    if (commandOption.type === ApplicationCommandOptionType.String) {
+                        if (optionPart.startsWith("min"))
+                            commandOption.minLength = parseInt(optionPart.substring(5));
+                        else if (optionPart.startsWith("max"))
+                            commandOption.maxLength = parseInt(optionPart.substring(5));
+                    } else if (commandOption.type === ApplicationCommandOptionType.Integer) {
+                        if (optionPart.startsWith("min"))
+                            commandOption.minValue = parseInt(optionPart.substring(5));
+                        else if (optionPart.startsWith("max"))
+                            commandOption.maxValue = parseInt(optionPart.substring(5));
+                    }
+                }
+            }
+
+            commandData.options.push(commandOption);
+        }
+    }
+
+    if (flags)
+        parseFlags(flags, commandData);
+}
+
+export function parseUiCommandShorthand(
+    command: string,
+    commandData: CommandData
+): void {
+    const UI_SHORTHAND_REGEX = /^(m|message|u|user)\/(\[[\w\s-]{1,32}\])((?:\s-\w+)+)*$/;
+
+    const commandTokens = UI_SHORTHAND_REGEX.exec(command) as string[] | null;
+
+    if (!commandTokens)
+        return
+
+    const type = commandTokens[1]!; 
+    const name = commandTokens[2]!.substring(0, commandTokens[2]!.length - 1);
+    const flags = commandTokens[3];
+
+    commandData.name = name;
+
+    switch (type) {
+        case "m":
+        case "message":
+            commandData.type = ApplicationCommandType.Message;
+            break;
+        case "u":
+        case "user":
+            commandData.type = ApplicationCommandType.User;
+            break;
+    }
+
+    if (flags)
+        parseFlags(flags, commandData);
+}
+
+function parseFlags(
+    flags: string,
+    commandData: CommandData
+): void {
+    const flagList = flags.substring(1).split(" ");
+
+    for (const flag of flagList) {
+        const flagName = flag.substring(1);
+
+        switch (flagName) {
+            case "nsfw":
+                commandData.nsfw = true;
+                break;
+        }
+    }
 }
