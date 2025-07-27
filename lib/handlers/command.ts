@@ -177,35 +177,35 @@ export function parseCommandPayload(payload: CommandPayload): CommandData {
     else
         parseCommandShorthand(payload.command, commandData);
 
-    for (const option of payload.options || []) {
-        let commandOption = {} as CommandDataOption;
-        let existingOptIdx = commandData.options.findIndex(opt => opt.name === option.name);
+    const optionMap = new Map<string, CommandDataOption>();
+    commandData.options.forEach(opt => optionMap.set(opt.name, opt));
 
-        if (existingOptIdx !== -1)
-            commandOption = commandData.options[existingOptIdx]!;
-        
+    for (const option of payload.options || []) {
+        let commandOption = optionMap.get(option.name);
+
+        if (!commandOption) {
+            commandOption = {
+                name: option.name
+            } as CommandDataOption;
+            
+            commandData.options.push(commandOption);
+            optionMap.set(option.name, commandOption);
+        }
+
         if (option.type) commandOption.type = option.type;
         if (option.required) commandOption.required = option.required;
         if (option.autocomplete) commandOption.autocomplete = option.autocomplete;
-        commandOption.name = option.name;
         commandOption.description = option.description || Defaults.NO_DESCRIPTION_PROVIDED;
         commandOption.channelTypes = option.channelTypes;
         commandOption.choices = option.choices;
         
         if (commandOption.type === ApplicationCommandOptionType.String) {
-            if (option.min)
-                commandOption.minLength = option.min;
-            if (option.max)
-                commandOption.maxLength = option.max;
+            if (option.min) commandOption.minLength = option.min;
+            if (option.max) commandOption.maxLength = option.max;
         } else if (commandOption.type === ApplicationCommandOptionType.Integer) {
-            if (option.min)
-                commandOption.minValue = option.min;
-            if (option.max)
-                commandOption.maxValue = option.max;
+            if (option.min) commandOption.minValue = option.min;
+            if (option.max) commandOption.maxValue = option.max;
         }
-
-        if (existingOptIdx === -1)
-            commandData.options.push(commandOption);
     }
 
     return commandData;
@@ -215,62 +215,65 @@ export function parseCommandShorthand(
     command: string, 
     commandData: CommandData
 ): void {
-    const SHORTHAND_REGEX = /^\/([\w-]{1,32})((?:\:[\w-]{1,32}){0,2})((?:\s(?:\[|<)[\w-]{1,32}\:(?:string|int|bool|user|channel|role|mentionable|number|attachment)(?:\:(?:min|max)=\d+){0,2}(?:\]|>))+)*((?:\s-\w+)+)*$/;
+    const SHORTHAND_REGEX = /^\/([\w-]{1,32})(?::([\w-]{1,32})(?::([\w-]{1,32}))?)?((?:\s[<\[][\w-]{1,32}:(?:string|int|bool|user|channel|role|mentionable|number|attachment)(?::(?:min|max)=\d+){0,2}[\]>])*)((?:\s-\w+)*)$/;
 
     const commandTokens = SHORTHAND_REGEX.exec(command) as string[] | null;
 
     if (!commandTokens)
         return;
 
-    const name = commandTokens[1]!;
-    const subNames = commandTokens[2];
-    const options = commandTokens[3];
-    const flags = commandTokens[4];
+    const [
+        ,
+        name,
+        groupSubName,
+        subName,
+        options,
+        flags
+    ] = commandTokens;
+    
+    commandData.name = name!;
 
-    commandData.name = name;
-
-    if (subNames) {
-        const subNameList = subNames.substring(1).split(":");
-
-        if (subNameList.length > 1) {
-            commandData.groupName = subNameList[0];
-            commandData.subName = subNameList[1];
-        } else if (subNameList.length === 1) {
-            commandData.subName = subNameList[0];
-        }
+    if (subName) {
+        commandData.groupName = groupSubName as string;
+        commandData.subName = subName;
+    } else if (groupSubName) {
+        commandData.subName = groupSubName;
     }
 
     if (options) {
-        const optionList = options.substring(1).split(" ");
+        const OPTION_REGEX = /[<\[]([\w-]{1,32}):(\w+)((?::(?:min|max)=\d+){0,2})[\]>]/g;
+        let matchedOption: RegExpExecArray | null;
 
-        for (let option of optionList) {
-            let commandOption = {} as CommandDataOption;
-            
-            const required = option.startsWith("<");
+        while (matchedOption = OPTION_REGEX.exec(options)) {
+            const [
+                option,
+                optionName,
+                optionType,
+                optionBounds
+            ] = matchedOption;
 
-            option = option.substring(1, option.length - 1);
-            
-            const optionParts = option.split(":");
-            const optionName = optionParts[0]!;
-            const optionType = optionParts[1]!;
+            let commandOption = {
+                name: optionName,
+                type: OptionType[optionType as keyof typeof OptionType],
+                required: option.startsWith("<"),
+                description: Defaults.NO_DESCRIPTION_PROVIDED
+            } as CommandDataOption;
 
-            commandOption.name = optionName;
-            commandOption.type = OptionType[optionType as keyof typeof OptionType];
-            commandOption.required = required;
-            
-            if (optionParts.length > 2) {
-                for (const optionPart of optionParts) {
-                    if (commandOption.type === ApplicationCommandOptionType.String) {
-                        if (optionPart.startsWith("min"))
-                            commandOption.minLength = parseInt(optionPart.substring(5));
-                        else if (optionPart.startsWith("max"))
-                            commandOption.maxLength = parseInt(optionPart.substring(5));
-                    } else if (commandOption.type === ApplicationCommandOptionType.Integer) {
-                        if (optionPart.startsWith("min"))
-                            commandOption.minValue = parseInt(optionPart.substring(5));
-                        else if (optionPart.startsWith("max"))
-                            commandOption.maxValue = parseInt(optionPart.substring(5));
-                    }
+            if (optionBounds) {
+                const bounds: Record<string, number> = {};
+                
+                // regex includes the `:` at the beginning
+                optionBounds.substring(1).split(":").forEach(bound => {
+                    const [key, value] = bound.split("=");
+                    bounds[key as string] = parseInt(value as string);
+                })
+
+                if (commandOption.type === ApplicationCommandOptionType.String) {
+                    commandOption.minLength = bounds["min"];
+                    commandOption.maxLength = bounds["max"];
+                } else if (commandOption.type === ApplicationCommandOptionType.Integer) {
+                    commandOption.minValue = bounds["min"];
+                    commandOption.maxValue = bounds["max"];
                 }
             }
 
@@ -278,7 +281,7 @@ export function parseCommandShorthand(
         }
     }
 
-    if (flags)
+    if (flags) 
         parseFlags(flags, commandData);
 }
 
@@ -293,24 +296,19 @@ export function parseUiCommandShorthand(
     if (!commandTokens)
         return
 
-    const type = commandTokens[1]!; 
-    const name = commandTokens[2]!.substring(0, commandTokens[2]!.length - 1);
-    const flags = commandTokens[3];
+    let [
+        ,
+        type,
+        name,
+        flags
+    ] = commandTokens;
 
-    commandData.name = name;
+    commandData.name = name!.substring(0, name!.length - 1);
+    commandData.type = type!.startsWith("m")
+        ? ApplicationCommandType.Message
+        : ApplicationCommandType.User;
 
-    switch (type) {
-        case "m":
-        case "message":
-            commandData.type = ApplicationCommandType.Message;
-            break;
-        case "u":
-        case "user":
-            commandData.type = ApplicationCommandType.User;
-            break;
-    }
-
-    if (flags)
+    if (flags) 
         parseFlags(flags, commandData);
 }
 
@@ -318,7 +316,7 @@ function parseFlags(
     flags: string,
     commandData: CommandData
 ): void {
-    const flagList = flags.substring(1).split(" ");
+    const flagList = flags.trim().split(" ");
 
     for (const flag of flagList) {
         const flagName = flag.substring(1);
