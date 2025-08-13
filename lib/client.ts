@@ -6,7 +6,9 @@ import {
     ApplicationCommandType, 
     Client, 
     ClientEvents, 
-    CommandInteraction
+    Collection, 
+    CommandInteraction,
+    Snowflake
 } from "discord.js";
 import { 
     ClientOptions, 
@@ -18,11 +20,26 @@ import {
     Event, 
     Supersonic
 } from "./types";
-import { Defaults, glob, safeImportSupersonicModule } from "./helpers";
+import { 
+    CommandScope, 
+    constructCommandKey, 
+    Defaults, 
+    Environment, 
+    getNamedCommandType, 
+    glob, 
+    isCommandGuildBased, 
+    safeImportSupersonicModule 
+} from "./helpers";
 import { handleInteraction } from "./handlers/builtin";
-import { createSubcommand } from "./handlers/command";
 import { readFile } from "fs/promises";
 import _ from "lodash";
+
+type FetchedCommands = Collection<Snowflake, ApplicationCommand>;
+
+interface FetchedCommandsList {
+    global: FetchedCommands;
+    [guild: `${string}.commands`]: FetchedCommands;
+}
 
 export async function initialize(this: Supersonic, options?: ClientOptions | string): Promise<Client<boolean>> {
     let optionsJsonFile: string = "";
@@ -35,7 +52,12 @@ export async function initialize(this: Supersonic, options?: ClientOptions | str
         options = JSON.parse(await readFile(optionsJsonFile, "utf-8"));
 
     this.opts = options as ClientOptions;
-    
+    const environment = this.opts.environment.toLowerCase();
+
+    // s.environment is what supersonic actually uses; default environment is always development
+    if (environment === "production" || environment === "prod")
+        this.environment = Environment.Production;
+
     const client = new Client(this.opts);
     this.client = client;
 
@@ -81,98 +103,124 @@ async function initializeCommands(this: Supersonic) {
                 else
                     commandData.category = this.opts.defaultCategory || Defaults.DEFAULT_CATEGORY;
             }  
-            
-            let commandExists = false;
-            
-            if (commandData.subName || commandData.groupName)
-                commandExists = createSubcommand.call(this, commandModule); 
 
-            if (!commandExists) {
-                switch (commandData.type) {
-                    case ApplicationCommandType.ChatInput:
-                        this.commands.chat.set(commandData.name, commandModule);
-                        break;
-                    case ApplicationCommandType.Message:
-                        this.commands.message.set(commandData.name, commandModule);
-                        break;
-                    case ApplicationCommandType.User:
-                        this.commands.user.set(commandData.name, commandModule);
-                        break;
-                }
-            }
+            this.attach(commandModule);
         }
     }
 
-    const slashCommands = await client.application?.commands.fetch({ cache: true });
+    const guildMap = this.opts.guilds || {};
+    const fetchedCommands = await Promise.all(
+        Object.entries(guildMap).map(async ([guild, guildId]) => { 
+            const commands = await client.application!.commands.fetch({
+                guildId: guildId,
+                cache: true
+            });
+
+            return [guild, commands] as const;
+        })
+    );
+
+    const globalCommands = await client.application!.commands.fetch({ cache: true });
+    let fetchedCmdList: FetchedCommandsList = {
+        global: globalCommands
+    };
+
+    fetchedCommands.forEach(([guild, commands]) => {
+        fetchedCmdList[`${guild}.commands`] = commands;
+    });
 
     for (const type of ["chat", "message", "user"] as Array<keyof CommandList>) {
         for (const command of this.commands[type]) {
             let commandModule: Command<CommandInteraction> = command[1] as Command<CommandInteraction>;
             let commandData: CommandData = commandModule.data as CommandData;
-            
+            let commandGuilds = commandData.guilds;
+
             if (commandData.category && !this.categories.has(commandData.category)) 
                 this.categories.add(commandData.category);
+            
+            const definedCommands = await fetchDefinedCommands.call(this, commandData, fetchedCmdList, commandGuilds);
+            const commandFmt: ApplicationCommandData = {
+                name: commandData.name,
+                description: commandData.type === ApplicationCommandType.ChatInput ? commandData.description : "",
+                type: commandData.type,
+                options: commandData.options as ApplicationCommandOptionData[]
+            }; 
 
-            let definedCommand = slashCommands?.find(
-                (cmd: ApplicationCommand) => 
-                    cmd.name === commandData.name &&
-                    cmd.type === commandData.type
-            );
+            for (const commandGuild in definedCommands) {
+                const definedCommand = definedCommands[commandGuild];
+                const guildId = this.opts.guilds![commandGuild] as string;
+                const isGuildBased = commandGuild !== CommandScope.Global;
 
-            if (!definedCommand) {
-                await client.application?.commands.create(
-                    {
-                        name: commandData.name,
-                        description: commandData.type === ApplicationCommandType.ChatInput ? commandData.description : "",
-                        type: commandData.type,
-                        options: commandData.options
-                    } as ApplicationCommandData
-                );
-            } else {
-                const commandFmt: ApplicationCommandData = {
-                    name: commandData.name,
-                    description: commandData.type === ApplicationCommandType.ChatInput ? commandData.description : "",
-                    type: commandData.type,
-                    options: commandData.options as ApplicationCommandOptionData[]
-                };
-
-                const definedCommandFmt = {
-                    name: definedCommand.name,
-                    description: definedCommand.description,
-                    type: definedCommand.type,
-                    options: definedCommand.options.map(opt => {
-                        // https://github.com/monkeytypegame/monkeytype-bot/blob/66a97ae4cb6c282c8dff1731af91c55d7cddb26c/src/structures/client.ts#L252
-                        type Keys = keyof typeof opt;
-                        type Values = typeof opt[Keys];
-                        type Entries = [Keys, Values];
-
-                        for (const [key, value] of Object.entries(opt) as Entries[]) {
-                            if (value === undefined || (Array.isArray(value) && value.length === 0)) {
-                                delete opt[key];
-                            }
-                        }
-
-                        return opt;
-                    })
-                };
-                
-                if (!_.isEqual(commandFmt, definedCommandFmt)) {
-                    await client.application?.commands.edit(
-                        definedCommand,
-                        commandFmt 
+                if (!definedCommand) {
+                    await client.application?.commands.create(
+                        commandFmt,
+                        isGuildBased ? guildId : undefined
                     );
+                } else {
+                    const definedCommandFmt = {
+                        name: definedCommand.name,
+                        description: definedCommand.description,
+                        type: definedCommand.type,
+                        options: definedCommand.options.map(opt => {
+                            // https://github.com/monkeytypegame/monkeytype-bot/blob/66a97ae4cb6c282c8dff1731af91c55d7cddb26c/src/structures/client.ts#L252
+                            type Keys = keyof typeof opt;
+                            type Values = typeof opt[Keys];
+                            type Entries = [Keys, Values];
+
+                            for (const [key, value] of Object.entries(opt) as Entries[]) {
+                                if (value === undefined || (Array.isArray(value) && value.length === 0)) {
+                                    delete opt[key];
+                                }
+                            }
+
+                            return opt;
+                        })
+                    };
+                    
+                    if (!_.isEqual(commandFmt, definedCommandFmt)) {
+                        if (isGuildBased)
+                            await client.application?.commands.edit(
+                                definedCommand,
+                                commandFmt,
+                                guildId
+                            );
+                        else
+                            await client.application?.commands.edit(
+                                definedCommand,
+                                commandFmt
+                            );
+                    }
                 }
             }
         }
     }
 
-    for (const slashCommand of slashCommands || []) {
-        let id = slashCommand[0];
-        let command = slashCommand[1];
-        let type: keyof CommandList = command.type === 1 ? "chat" : command.type === 2 ? "user" : "message";
-        
-        if (!this.commands[type].has(command.name)) {
-            await client.application?.commands.delete(id);
+    for (const commandGuild of (Object.keys(fetchedCmdList) as (CommandScope.Global | `${string}.commands`)[])) {
+        const scopedCommands = fetchedCmdList[commandGuild] as FetchedCommands;
+        let isGuildBased = commandGuild !== CommandScope.Global;
+
+        for (const command of scopedCommands) {
+            const commandId = command[0];
+            const commandData = command[1];
+            const type = getNamedCommandType(commandData.type);
+            const guildId = guildMap[commandGuild.slice(0, -(".commands").length)];
+
+            const key = constructCommandKey(
+                commandData.name, 
+                type, 
+                isGuildBased ? CommandScope.Guild : CommandScope.Global, 
+                isGuildBased ? guildId : undefined
+            );
+            const mapping = this.mappings.get(key);
+
+            if (
+                (mapping && !this.commands[type].has(mapping))
+                || !mapping
+            )
+                await client.application?.commands.delete(
+                    commandId,
+                    isGuildBased ? guildId : undefined
+                );
         }
     }
 }
@@ -234,4 +282,59 @@ async function populateComponents(this: Supersonic) {
     for (const component of components) {
         this.components.button.set(component.name, component);
     }
+}
+
+async function fetchDefinedCommands(
+    this: Supersonic,
+    data: CommandData,
+    fetchedCommandsList: FetchedCommandsList,
+    commandGuilds?: string[]
+): Promise<Record<string, ApplicationCommand | undefined>> {
+    // Fetch from global scope if commandGuilds is an empty array; if the environment
+    // is production and commandGuilds does not exist; or if the environment is  
+    // development, commandGuilds does not exist, and the development guild does not 
+    // exist. 
+    //
+    // Fetch from specific guild scope if commandGuilds has elements or if the 
+    // environment is development, and the development guild exists.
+    //
+    // If the development guild exists, it gets appended to the commandGuilds array 
+    // when the environment is development.
+    const guildMap = this.opts.guilds || {};
+    const isGuildBased = isCommandGuildBased.call(this, data);
+    let definedCommands = {} as Record<string, ApplicationCommand | undefined>;
+
+    if (!isGuildBased) {
+        const globalCommands = fetchedCommandsList[CommandScope.Global];
+        const definedCommand = globalCommands.find(
+            (cmd: ApplicationCommand) => 
+                cmd.name === data.name &&
+                cmd.type === data.type
+        );
+
+        definedCommands[CommandScope.Global] = definedCommand;
+        
+        return definedCommands;
+    }
+
+    if (!commandGuilds)
+        commandGuilds = []; 
+
+    for (let i = 0; i < commandGuilds.length; i++) {
+        let commandGuild = commandGuilds[i] as string;
+        
+        if (!(commandGuild in guildMap))
+            continue;
+
+        const guildCmdList = fetchedCommandsList[`${commandGuild}.commands`] as FetchedCommands;
+        const definedCommand = guildCmdList.find(
+            (cmd: ApplicationCommand) => 
+                cmd.name === data.name &&
+                cmd.type === data.type
+        );
+        
+        definedCommands[commandGuild] = definedCommand;
+    }
+
+    return definedCommands;
 }

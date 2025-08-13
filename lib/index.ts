@@ -15,6 +15,7 @@ import {
     MessageContextMenuCommandInteraction, 
     UserContextMenuCommandInteraction 
 } from "discord.js";
+import { Environment } from "./helpers";
 import * as client from "./client";
 import * as handlers from "./handlers";
 import * as message from "./message";
@@ -27,6 +28,7 @@ export function createSupersonic(): Supersonic {
             user: new Map<string, Command<UserContextMenuCommandInteraction>>(),
             message: new Map<string, Command<MessageContextMenuCommandInteraction>>()
         } as CommandList,
+        mappings: new Map<string, string>(),
         components: {
             button: new Map<string, Component>()
         } as ComponentList,
@@ -34,6 +36,7 @@ export function createSupersonic(): Supersonic {
         middleware: [] as CommandMiddleware<CommandInteraction>[],
         categories: new Set<string>(),
         opts: {} as ClientOptions,
+        environment: Environment.Development,
         ...client,
         ...handlers,
         ...message,

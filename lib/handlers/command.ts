@@ -16,14 +16,25 @@ import {
     MessageContextMenuCommandInteraction, 
     UserContextMenuCommandInteraction 
 } from "discord.js";
-import { Defaults, OptionType } from "../helpers";
+import { 
+    CommandScope, 
+    CommandType, 
+    constructCommandKey, 
+    Defaults, 
+    Environment, 
+    getCommand, 
+    getNamedCommandType, 
+    isCommandGuildBased, 
+    OptionType 
+} from "../helpers";
 
 export function module<T extends CommandInteraction>(
+    this: Supersonic,
     payload: CommandPayload, 
     ...callbacks: CommandCallbacks<T>
 ): Command<T> {
     let commandModule = {} as Command<T>;
-    let commandData = parseCommandPayload(payload);
+    let commandData = parseCommandPayload.call(this, payload);
 
     commandModule.data = commandData;
     commandModule.middleware = callbacks.slice(0, callbacks.length-1) as CommandMiddleware<T>[];
@@ -59,7 +70,7 @@ export function attach<T extends CommandInteraction>(
 ): void {
     let commandModule = "data" in command 
         ? command as Command<T> 
-        : module(command, ...callbacks as CommandCallbacks<T>); 
+        : module.call(this, command, ...callbacks as CommandCallbacks<CommandInteraction>); 
     let commandData = commandModule.data;
     
     let commandExists = false;
@@ -67,18 +78,58 @@ export function attach<T extends CommandInteraction>(
     if (commandData.subName || commandData.groupName)
         commandExists = createSubcommand.call(this, commandModule as unknown as Command<ChatInputCommandInteraction>); 
 
-    if (!commandExists) {
-        switch (commandModule.data.type) {
+    if (!commandExists)
+        registerCommand.call(this, commandModule as Command<CommandInteraction>);
+}
+
+export function registerCommand<T extends CommandInteraction>(
+    this: Supersonic,
+    commandModule: Command<T>
+): void {
+    const { 
+        name, 
+        type, 
+        guilds 
+    } = commandModule.data;
+    
+    const register = (name: string, type: ApplicationCommandType) => {
+        switch (type) {
             case ApplicationCommandType.ChatInput:
-                this.commands.chat.set(commandModule.data.name, commandModule as unknown as Command<ChatInputCommandInteraction>);
+                this.commands.chat.set(name, commandModule as unknown as Command<ChatInputCommandInteraction>);
                 break;
             case ApplicationCommandType.Message:
-                this.commands.message.set(commandModule.data.name, commandModule as unknown as Command<MessageContextMenuCommandInteraction>);
+                this.commands.message.set(name, commandModule as unknown as Command<MessageContextMenuCommandInteraction>);
                 break;
             case ApplicationCommandType.User:
-                this.commands.user.set(commandModule.data.name, commandModule as unknown as Command<UserContextMenuCommandInteraction>);
+                this.commands.user.set(name, commandModule as unknown as Command<UserContextMenuCommandInteraction>);
                 break;
         }
+    };
+
+    if (guilds?.length) {
+        let primaryKey: string | null = null;
+        const guildMap = this.opts.guilds || {};
+
+        for (let i = 0; i < guilds.length; i++) {
+            const guild = guilds[i] as string;
+            const guildId = guildMap[guild];
+            // ApplicationCommandType is 1-indexed, so we need to subtract by 1 to get the correct type
+            const key = constructCommandKey(name, getNamedCommandType(type), CommandScope.Guild, guildId);
+
+            if (primaryKey) {
+                this.mappings.set(key, primaryKey);
+                continue;
+            }
+
+            register(key, type);
+            primaryKey = key;
+            this.mappings.set(key, primaryKey);
+        }
+    } else {
+        const key = constructCommandKey(name, getNamedCommandType(type), CommandScope.Global);
+
+        register(key, type);
+        this.mappings.set(key, key);
     }
 }
 
@@ -86,11 +137,26 @@ export function createSubcommand(
     this: Supersonic, 
     commandModule: Command<ChatInputCommandInteraction>
 ): boolean {
-    // returns whether command already exists in Supersonic object
+    // Returns whether command already exists in Supersonic object
     const commandData = commandModule.data;
+    const isGuildBased = isCommandGuildBased.call(this, commandData);
+    const guildMap = this.opts.guilds || {};
+    // If guild based, the command needs a guild to find its command module - We know there is 
+    // at least one guild in commandData.guilds because it is a guild-based command and the 
+    // development guild gets added when the command is parsed if the environment is development
+    let firstGuild = isGuildBased ? commandData.guilds![0] : undefined;
+    if (firstGuild)
+        firstGuild = guildMap[firstGuild];
+
+    let existingCommand = getCommand.call(
+        this,
+        commandData.name, 
+        CommandType.Chat, 
+        isGuildBased ? CommandScope.Guild : CommandScope.Global,
+        firstGuild
+    ) as Command<ChatInputCommandInteraction>;
 
     if (commandData.groupName && commandData.subName) {
-        let existingCommand = this.commands.chat.get(commandData.name);
         let subOption = {
             type: ApplicationCommandOptionType.Subcommand,
             name: commandData.subName,
@@ -131,7 +197,6 @@ export function createSubcommand(
             return false;
         }
     } else if (commandData.subName) {
-        let existingCommand = this.commands.chat.get(commandData.name);
         let subOption = {
             type: ApplicationCommandOptionType.Subcommand,
             name: commandData.subName,
@@ -158,15 +223,29 @@ export function createSubcommand(
     return false;
 }
 
-export function parseCommandPayload(payload: CommandPayload): CommandData {
+export function parseCommandPayload(this: Supersonic, payload: CommandPayload): CommandData {
     let commandData = {} as CommandData;
 
     commandData.type = payload.type || ApplicationCommandType.ChatInput;
     commandData.description = payload.description || Defaults.NO_DESCRIPTION_PROVIDED;
     commandData.subDescription = payload.subDescription || Defaults.NO_DESCRIPTION_PROVIDED;
     commandData.groupDescription = payload.groupDescription || Defaults.NO_DESCRIPTION_PROVIDED;
+    commandData.guilds = payload.guilds;
     commandData.options = [];
-    
+
+    // Add the development guild only if the environment is development, the guilds 
+    // array is not an empty array, the development guild exists in guildMap, and 
+    // the guilds array does not already include development guild
+    const guildMap = this.opts.guilds || {};
+    if (
+        this.environment === Environment.Development
+        && !(commandData.guilds && commandData.guilds.length === 0) 
+        && guildMap[Defaults.DEVELOPMENT_GUILD_NAME]
+        && !commandData.guilds?.includes(Defaults.DEVELOPMENT_GUILD_NAME) 
+    ) {
+        (commandData.guilds ??= []).push(Defaults.DEVELOPMENT_GUILD_NAME);
+    }
+
     if (
         payload.command.startsWith("m")
         || payload.command.startsWith("message")

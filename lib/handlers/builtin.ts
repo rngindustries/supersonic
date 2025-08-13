@@ -1,31 +1,27 @@
 import { 
-    ApplicationCommandType,
     ChatInputCommandInteraction, 
     CommandInteraction, 
     Interaction, 
     MessageContextMenuCommandInteraction, 
     UserContextMenuCommandInteraction 
 } from "discord.js";
-import { Defaults } from "../helpers";
+import { CommandScope, Defaults, getCommand, getNamedCommandType } from "../helpers";
 import { Command, CommandExecutor, Supersonic } from "../types";
 
 export function handleInteraction(this: Supersonic, interaction: Interaction) {
     if (interaction.isCommand()) {
         const commandName = interaction.commandName;
-        let command;
-        switch (interaction.commandType) {
-            case ApplicationCommandType.ChatInput:
-                command = this.commands.chat.get(commandName) as Command<ChatInputCommandInteraction>;
-                break;
-            case ApplicationCommandType.User:
-                command = this.commands.user.get(commandName) as Command<UserContextMenuCommandInteraction>;
-                break;
-            case ApplicationCommandType.Message:
-                command = this.commands.message.get(commandName) as Command<MessageContextMenuCommandInteraction>;
-                break;
-        }
+        const commandType = getNamedCommandType(interaction.commandType);
+        const guildId = interaction.guildId ? interaction.guildId : undefined;
+        const command = getCommand.call(
+            this, 
+            commandName, 
+            commandType, 
+            guildId ? CommandScope.Guild : CommandScope.Global, 
+            guildId
+        );
 
-        if (command === undefined) {
+        if (!command) {
             interaction.reply({
                 content: Defaults.COMMAND_NOT_FOUND,
                 ephemeral: true

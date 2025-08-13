@@ -17,17 +17,22 @@ import {
     MessageContextMenuCommandInteraction,
     UserContextMenuCommandInteraction,
 } from "discord.js";
+import { Environment } from "./helpers";
 
 export type SlashCommandInteraction = | ChatInputCommandInteraction | MessageContextMenuCommandInteraction | UserContextMenuCommandInteraction;
 
+export type SupportedCommandType = Exclude<ApplicationCommandType, ApplicationCommandType.PrimaryEntryPoint>;
+
 export interface Supersonic extends HeaderClient, HeaderMessage, HeaderHandlers, HeaderUtils {
     commands: CommandList;
+    mappings: Map<string, string>;
     components: ComponentList;
     events: Map<keyof ClientEvents, Event<keyof ClientEvents>[]>;
     middleware: CommandMiddleware<CommandInteraction>[];
     categories: Set<string>;
     opts: ClientOptions;
     client?: Client;
+    environment: Environment;
 }
 
 export interface HeaderMessage {
@@ -39,7 +44,10 @@ export interface HeaderMessage {
 
 export interface HeaderCommandHandler {
     module: <T extends CommandInteraction>(payload: CommandPayload, ...callbacks: CommandCallbacks<T>) => Command<T>;
-    attach: <T extends CommandInteraction>(payload: CommandPayload, ...callbacks: CommandCallbacks<T>) => void;
+    attach: {
+        <T extends CommandInteraction>(commandModule: Command<T>, ...callbacks: []): void;
+        <T extends CommandInteraction>(payload: CommandPayload, ...callbacks: CommandCallbacks<T>): void;
+    }
 }
 
 export interface HeaderComponentHandler {
@@ -77,7 +85,7 @@ export interface CommandList {
 export interface Command<T extends CommandInteraction> {
     data: CommandData;
     middleware: CommandMiddleware<T>[];
-    execute: { [key: string]: CommandExecutor<T> };
+    execute: Record<string, CommandExecutor<T>>;
 }
 
 export interface CommandPayload {
@@ -85,9 +93,10 @@ export interface CommandPayload {
     description?: string;
     groupDescription?: string;
     subDescription?: string;
+    guilds?: string[];
     category?: string;
     nsfw?: boolean;
-    type?: ApplicationCommandType;
+    type?: SupportedCommandType;
     options?: CommandPayloadOption[];
 }
 
@@ -113,9 +122,10 @@ export interface CommandData {
     description: string;
     groupDescription?: string;
     subDescription?: string;
+    guilds?: string[];
     category?: string;
     nsfw?: boolean;
-    type: ApplicationCommandType;
+    type: SupportedCommandType;
     options: CommandDataOption[];
 }
 
@@ -167,7 +177,7 @@ export interface ClientOptions extends DiscordClientOptions {
     eventDirectory?: string;
     middlewareDirectory?: string;
     componentDirectory?: string;
-    guilds?: { [name: string]: string };
+    guilds?: Record<string, string>;
     useDirectoryAsCategory?: boolean;
     defaultCategory?: string;
     timeout?: number;

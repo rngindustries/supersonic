@@ -1,11 +1,13 @@
 import { 
     APIActionRowComponent, 
     APIButtonComponent, 
+    ApplicationCommandType, 
     ButtonStyle,  
     ComponentType 
 } from "discord.js";
 import { glob as _glob, GlobOptions, Path } from "glob";
 import { pathToFileURL } from "url";
+import { CommandData, Supersonic } from "./types";
 
 export enum OptionType {
     string = 3,
@@ -19,6 +21,22 @@ export enum OptionType {
     attachment = 11
 }
 
+export enum Environment {
+    Development = 0,
+    Production = 1
+}
+
+export enum CommandScope {
+    Global = "global",
+    Guild = "guild"
+}
+
+export enum CommandType {
+    Chat = "chat",
+    User = "user",
+    Message = "message"
+}
+
 export enum Defaults {
     DEFAULT_CATEGORY = "general",
     NO_DESCRIPTION_PROVIDED = "No description provided.",
@@ -28,7 +46,8 @@ export enum Defaults {
     LEFT_END_PAGE_BUTTON_ID = "supersonic/left_end_page",
     RIGHT_END_PAGE_BUTTON_ID = "supersonic/right_end_page",
     PREVIOUS_PAGE_BUTTON_ID = "supersonic/previous_page",
-    NEXT_PAGE_BUTTON_ID = "supersonic/next_page"
+    NEXT_PAGE_BUTTON_ID = "supersonic/next_page",
+    DEVELOPMENT_GUILD_NAME = "development"
 }
 
 export const PresetPaginationRowList: { [key: string]: APIActionRowComponent<APIButtonComponent>} = {
@@ -135,6 +154,63 @@ export const PresetPaginationRowList: { [key: string]: APIActionRowComponent<API
             },
         ]
     }
+}
+
+export function getCommand(
+    this: Supersonic,
+    name: string,
+    type: CommandType,
+    scope: CommandScope,
+    guildId?: string
+) {
+    const key = constructCommandKey(name, type, scope, guildId);
+    const mapping = this.mappings.get(key);
+
+    if (mapping)
+        return this.commands[type].get(mapping);
+    else
+        return null;
+}
+
+export function constructCommandKey(
+    name: string,
+    type: CommandType,
+    scope: CommandScope,
+    guildId?: string
+): string {
+    return scope === CommandScope.Global
+        ? `${scope}:${type}:${name}`
+        : `${scope}:${guildId}:${type}:${name}`
+}
+
+export function getNamedCommandType(
+    type: ApplicationCommandType
+): CommandType {
+    return type === ApplicationCommandType.ChatInput 
+        ? CommandType.Chat 
+        : type === ApplicationCommandType.User 
+            ? CommandType.User
+            : CommandType.Message;
+}
+
+export function isCommandGuildBased(
+    this: Supersonic,
+    data: CommandData
+): boolean {
+    const guilds = data.guilds;
+    const guildMap = this.opts.guilds || {};
+
+    if (
+        (guilds && guilds.length === 0)
+        || (this.environment === Environment.Production && !guilds)
+        || (this.environment === Environment.Development 
+            && !guilds 
+            && !(Defaults.DEVELOPMENT_GUILD_NAME in guildMap)
+        )
+    )
+        return false;
+
+    return true;
 }
 
 export async function glob(
