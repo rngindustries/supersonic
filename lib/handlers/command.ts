@@ -177,7 +177,7 @@ export function createSubcommand(
                     option.name === commandData.groupName  
             );
 
-            if (existingGroup) {
+            if (existingGroup !== -1) {
                 existingCommand.data.options[existingGroup]?.options?.push(subOption);
             } else {
                 existingCommand.data.options.push(groupOption);

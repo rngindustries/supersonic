@@ -74,6 +74,7 @@ export interface HeaderClient {
 
 export interface HeaderUtils {
     gucid: (name: string, state?: string[]) => string;
+    getClient: () => Client;
 }
 
 export interface CommandList {
