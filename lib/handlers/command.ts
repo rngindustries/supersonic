@@ -113,7 +113,6 @@ export function registerCommand<T extends CommandInteraction>(
         for (let i = 0; i < guilds.length; i++) {
             const guild = guilds[i] as string;
             const guildId = guildMap[guild];
-            // ApplicationCommandType is 1-indexed, so we need to subtract by 1 to get the correct type
             const key = constructCommandKey(name, getNamedCommandType(type), CommandScope.Guild, guildId);
 
             if (primaryKey) {
