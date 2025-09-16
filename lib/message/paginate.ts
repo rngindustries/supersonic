@@ -23,9 +23,13 @@ import { Defaults, PresetPaginationRowList } from "../helpers";
 export async function paginate(this: Supersonic, options: DynamicPaginationOptions) {
     let embed = options.embedOptions;
     const interaction = options.interaction;
+    // onInitial is the function to execute on initial pagination and onPageChange is the function to execute when
+    // the user navigates forward or backward - paginate() does not update the interaction message after pagination 
+    // changes; it is the developer's responsibility to do so within the onInitial and onPageChange functions
     const onInitial = options.onInitial;
     const onPageChange = options.onPageChange;
     
+    // Pagination buttons - preset rows are preferred, but developers can provide a custom row using options.customRow
     let row = 
         options.customRow as APIActionRowComponent<APIButtonComponentWithCustomId> || 
         options.rowType ? 
@@ -40,6 +44,7 @@ export async function paginate(this: Supersonic, options: DynamicPaginationOptio
             row.components.findIndex((component) => component.custom_id === Defaults.PAGE_NUMBER_LABEL_ID)
         ] as APIButtonComponentWithCustomId).label = `Page ${(options.pageStart || 0) + 1} of ${options.maxPages <= 1 ? 1 : options.maxPages}`;
 
+    // Disable right or left buttons depending on what page the user is on 
     disableNavigationOnEnd(
         "preliminary",
         options.pageStart || 0,
@@ -49,12 +54,15 @@ export async function paginate(this: Supersonic, options: DynamicPaginationOptio
         options.rowType
     );
 
+    // Currently, pagination requires the developer to return the reply Message, but we should probably change this and 
+    // make pagination fetch the reply instead 
     const message = await onInitial(embed, row);
 
-    // TODO: add warning indicating that pagination is unneeded here
     if (options.maxPages === 1)
+        // TODO: add warning indicating that pagination is unneeded here
         return;
 
+    // Create a message interaction collector and listen for button clicks - returns the interaction collector
     return collect(
         interaction, 
         message, 
@@ -71,6 +79,9 @@ export async function paginate(this: Supersonic, options: DynamicPaginationOptio
 }
 
 export async function paginateStatic(this: Supersonic, options: StaticPaginationOptions) {
+    // Static pagination provides a way to pass defined embeds instead of a function that modifies the embed
+    // based on page change and returns a "paginator" that allows the developer to add more embeds to the list 
+
     let paginator = (async function(this: Supersonic) {
         let embeds = paginator.embeds;
         const interaction = options.interaction;
@@ -86,10 +97,11 @@ export async function paginateStatic(this: Supersonic, options: StaticPagination
                 row.components.findIndex((component) => component.custom_id === Defaults.PAGE_NUMBER_LABEL_ID)
             ] as APIButtonComponentWithCustomId).label = `Page ${(options.pageStart || 0) + 1} of ${embeds.length}`;
         
-        // TODO: add proper error message
         if (embeds.length === 0) 
+            // TODO: add error message explaining that the paginator has no embeds to send 
             return;
         
+        // Disable right or left buttons depending on what page the user is on 
         disableNavigationOnEnd(
             "preliminary",
             options.pageStart || 0,
@@ -99,13 +111,15 @@ export async function paginateStatic(this: Supersonic, options: StaticPagination
             options.rowType
         );
 
-        const message = await interaction.reply({
+        // Send the first embed and get the Message  
+        let message = (await interaction.reply({
             embeds: [embeds[0] as APIEmbed], 
             components: embeds.length === 1 ? undefined : [row],
-            fetchReply: true
-        });
+            withResponse: true
+        })).resource?.message as Message;
 
         if (embeds.length === 1)
+            // TODO: add warning explaining that pagination is unneeded here
             return;
 
         paginator.collector = collect(
@@ -136,12 +150,14 @@ export async function paginateStatic(this: Supersonic, options: StaticPagination
 }
 
 export async function paginateList<T>(this: Supersonic, options: ListPaginationOptions<T>) {
+    // Paginate an array of strings based on a specified amount per page using embeds
     let embed = options.embedOptions;
     let list = options.list;
     let amountPerPage = options.amountPerPage;
     let maxPages = 1;
     const interaction = options.interaction;
 
+    // maxPages is optional, but a developer may provide a max number of pages that cuts off the data
     if (options.maxPages)
         maxPages = Math.min(options.maxPages, Math.ceil(list.length / amountPerPage));
     else 
@@ -171,6 +187,7 @@ export async function paginateList<T>(this: Supersonic, options: ListPaginationO
             .join(options.inline ? options.inline : "\n")
     });
 
+    // Disable right or left buttons depending on what page the user is on 
     disableNavigationOnEnd(
         "preliminary",
         options.pageStart || 0,
@@ -180,11 +197,11 @@ export async function paginateList<T>(this: Supersonic, options: ListPaginationO
         options.rowType
     );
 
-    const message = await interaction.reply({
+    const message = (await interaction.reply({
         embeds: [embed], 
         components: maxPages === 1 ? undefined : [row],
-        fetchReply: true
-    });
+        withResponse: true
+    })).resource?.message as Message;
 
     if (maxPages === 1)
         return;
@@ -200,6 +217,7 @@ export async function paginateList<T>(this: Supersonic, options: ListPaginationO
             if (embed.fields === undefined)
                 embed.fields = [];
     
+            // Modify only the field that corresponds to the pagination list
             embed.fields[embed.fields.findIndex((field) => field.name === options.listName)] = {
                 name: options.listName,
                 value: list
@@ -218,12 +236,14 @@ export async function paginateList<T>(this: Supersonic, options: ListPaginationO
 }
 
 export async function paginateListStr<T>(this: Supersonic, options: StringListPaginationOptions<T>) {
+    // Paginate an array of strings based on a specified amount per page within a message
     let list = options.list;
     let amountPerPage = options.amountPerPage;
     let maxPages = 1;
     let formatting = options.formatting;
     const interaction = options.interaction;
 
+    // maxPages is optional, but a developer may provide a max number of pages that cuts off the data
     if (options.maxPages)
         maxPages = Math.min(options.maxPages, Math.ceil(list.length / amountPerPage));
     else
@@ -248,12 +268,14 @@ export async function paginateListStr<T>(this: Supersonic, options: StringListPa
             .join(options.inline ? options.inline : "\n");
     let content = `\`${options.listName || ""}:\`\n${listSelection}`;
 
-    if (formatting) {
+    // A developer may have a custom format for the pagination message - the format must include `${list}`, which will be replaced 
+    // by the list, and `${list_name}`, which will be replaced by the list name
+    if (formatting)
         content = formatting
             .replace("${list}", listSelection)
             .replace("${list_name}", options.listName || "");
-    }
 
+    // Disable right or left buttons depending on what page the user is on 
     disableNavigationOnEnd(
         "preliminary",
         options.pageStart || 0,
@@ -263,11 +285,11 @@ export async function paginateListStr<T>(this: Supersonic, options: StringListPa
         options.rowType
     );
 
-    const message = await interaction.reply({
+    const message = (await interaction.reply({
         content: content,
         components: maxPages === 1 ? undefined : [row],
-        fetchReply: true
-    });
+        withResponse: true
+    })).resource?.message as Message;
 
     if (maxPages === 1)
         return;
@@ -333,8 +355,7 @@ function collect(
         ] as APIButtonComponentWithCustomId;
     }
 
-    // Exclude<TextBasedChannel, PartialGroupDMChannel> feels a little bit like a hack; if there's 
-    // a better way, please fix
+    // Create message component collector and listen to button component clicks 
     const collector = (interaction.channel as Exclude<TextBasedChannel, PartialGroupDMChannel>)?.createMessageComponentCollector({
         componentType: ComponentType.Button,
         dispose: true,
@@ -352,6 +373,7 @@ function collect(
 
             page--;
 
+            // Disable left buttons if the user is on the first page  
             disableNavigationOnEnd(
                 "left",
                 page,
@@ -371,6 +393,7 @@ function collect(
             
             page++;
 
+            // Disable right buttons if the user is on the last page 
             disableNavigationOnEnd(
                 "right",
                 page,
@@ -414,6 +437,8 @@ function collect(
             )
         }
 
+        // Run onPageChange callback after page change - all pagination methods, even those without an 
+        // onPageChange parameter, rely on onPageChange under the hood
         callback(page);
     })
 
