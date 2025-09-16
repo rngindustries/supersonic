@@ -54,7 +54,7 @@ export async function initialize(this: Supersonic, options?: ClientOptions | str
     this.opts = options as ClientOptions;
     const environment = this.opts.environment.toLowerCase();
 
-    // s.environment is what supersonic actually uses; default environment is always development
+    // s.environment is what Supersonic actually uses; default environment is development
     if (environment === "production" || environment === "prod")
         this.environment = Environment.Production;
 
@@ -68,6 +68,7 @@ export async function initialize(this: Supersonic, options?: ClientOptions | str
 
 export async function build(this: Supersonic, token: string) {
     if (!this.client || !this.opts) 
+        // TODO: add error message explaining s.initialize() should be used first
         return;
 
     if (this.opts.module) {
@@ -109,6 +110,7 @@ async function initializeCommands(this: Supersonic) {
     }
 
     const guildMap = this.opts.guilds || {};
+    // All registered commands in the guildMap guilds
     const fetchedCommands = await Promise.all(
         Object.entries(guildMap).map(async ([guild, guildId]) => { 
             const commands = await client.application!.commands.fetch({
@@ -126,9 +128,12 @@ async function initializeCommands(this: Supersonic) {
     };
 
     fetchedCommands.forEach(([guild, commands]) => {
+        // `.commands` is appended to the end of each guild alias to ensure a user cannot use 'global' as a guild alias and 
+        // overwrite the global command list
         fetchedCmdList[`${guild}.commands`] = commands;
     });
 
+    // Register or edit all application commands using this.commands
     for (const type of ["chat", "message", "user"] as Array<keyof CommandList>) {
         for (const command of this.commands[type]) {
             let commandModule: Command<CommandInteraction> = command[1] as Command<CommandInteraction>;
@@ -138,7 +143,9 @@ async function initializeCommands(this: Supersonic) {
             if (commandData.category && !this.categories.has(commandData.category)) 
                 this.categories.add(commandData.category);
             
+            // Fetches the command in all specified guilds to ensure the latest version is applied or registered to every guild
             const definedCommands = await fetchDefinedCommands.call(this, commandData, fetchedCmdList, commandGuilds);
+            // Discord expects a different format than what Supersonic holds in this.commands
             const commandFmt: ApplicationCommandData = {
                 name: commandData.name,
                 description: commandData.type === ApplicationCommandType.ChatInput ? commandData.description : "",
@@ -157,6 +164,8 @@ async function initializeCommands(this: Supersonic) {
                         isGuildBased ? guildId : undefined
                     );
                 } else {
+                    // Guild already has the defined command, so compare the defined command and the Supersonic command 
+                    // and makes any necessary edits 
                     const definedCommandFmt = {
                         name: definedCommand.name,
                         description: definedCommand.description,
@@ -196,6 +205,7 @@ async function initializeCommands(this: Supersonic) {
     }
 
     for (const commandGuild of (Object.keys(fetchedCmdList) as (CommandScope.Global | `${string}.commands`)[])) {
+        // Check every registered command in every guild and delete any that are not in this.commands 
         const scopedCommands = fetchedCmdList[commandGuild] as FetchedCommands;
         let isGuildBased = commandGuild !== CommandScope.Global;
 
@@ -235,6 +245,7 @@ async function initializeEvents(this: Supersonic) {
         for (const eventModule of eventModules) {
             const eventName = eventModule.name as keyof ClientEvents;
 
+            // Events can have multiple handlers, so an event must be able to hold multiple event modules
             if (!this.events.has(eventName))
                 this.events.set(eventName, []);
 
@@ -242,7 +253,7 @@ async function initializeEvents(this: Supersonic) {
         }
     }
     
-
+    // Attach a listener to every defined event in this.events
     for (const [eventName, eventModules] of this.events.entries()) {
         const eventExecutor = async (...args: ClientEvents[typeof eventName]) => {
             for (const eventModule of eventModules) {
@@ -250,6 +261,7 @@ async function initializeEvents(this: Supersonic) {
             }
         };
 
+        // If even one module has 'once' set to true, then the event as a whole must use once
         const useOnce = eventModules.some(eventModule => eventModule.once);
         (this.client as Client)[useOnce ? "once" : "on"](eventName, eventExecutor);
     }
@@ -265,6 +277,7 @@ async function populateMiddleware(this: Supersonic) {
     ) as CommandMiddleware<CommandInteraction>[];
 
     for (const middleware of middlewares) {
+        // Supersonic assumes all middlewares are functions 
         if (typeof middleware === "function")
             this.middleware.push(middleware);
     }
@@ -280,6 +293,7 @@ async function populateComponents(this: Supersonic) {
     ) as Component[];
 
     for (const component of components) {
+        // TODO: add other components (e.g., modals)
         this.components.button.set(component.name, component);
     }
 }
@@ -290,15 +304,14 @@ async function fetchDefinedCommands(
     fetchedCommandsList: FetchedCommandsList,
     commandGuilds?: string[]
 ): Promise<Record<string, ApplicationCommand | undefined>> {
-    // Fetch from global scope if commandGuilds is an empty array; if the environment
-    // is production and commandGuilds does not exist; or if the environment is  
-    // development, commandGuilds does not exist, and the development guild does not 
-    // exist. 
+    // Fetch from global scope if commandGuilds is an empty array; if the environment is production and 
+    // commandGuilds does not exist; or if the environment is  development, commandGuilds does not exist, 
+    // and the development guild does not exist. 
     //
-    // Fetch from specific guild scope if commandGuilds has elements or if the 
-    // environment is development, and the development guild exists.
+    // Fetch from specific guild scope if commandGuilds has elements or if the environment is development 
+    // and the development guild exists.
     //
-    // If the development guild exists, it gets appended to the commandGuilds array 
+    // If the development guild exists, it gets appended to the commandGuilds array (at command payload parsing) 
     // when the environment is development.
     const guildMap = this.opts.guilds || {};
     const isGuildBased = isCommandGuildBased.call(this, data);
@@ -324,6 +337,7 @@ async function fetchDefinedCommands(
         let commandGuild = commandGuilds[i] as string;
         
         if (!(commandGuild in guildMap))
+            // TODO: add warning explaining the specified guild is not defined in the 'guilds' option   
             continue;
 
         const guildCmdList = fetchedCommandsList[`${commandGuild}.commands`] as FetchedCommands;

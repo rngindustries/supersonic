@@ -31,6 +31,7 @@ export function listen(
         : event;
     const eventName = eventModule.name as keyof ClientEvents;
 
+    // Events can have multiple handlers, so an event must be able to hold multiple event modules
     if (!this.events.has(eventName))
         this.events.set(eventName, []);
 
@@ -38,10 +39,14 @@ export function listen(
 }
 
 export function parseEvent(event: string) {
+    // TODO: change unnecessary @ needed before event name
     if (!event.startsWith("@")) return {};
     
     let output = {} as Event<keyof ClientEvents>;
 
+    // Event names follow the format `event/alias!` where `event` is the actual event name as defined by the API,
+    // `alias` is the name that the developer/Supersonic hold the module as, and `!` determines if the event must be 
+    // ran using `once` or `on`
     let pieces = event.split("/");
     let eventName = pieces[0] as string;
     let eventAlias = pieces[1] ?? "";

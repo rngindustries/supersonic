@@ -11,7 +11,6 @@ export function component<T extends MessageComponentInteraction>(
     } as Component;
 }
 
-// TODO: add more components (e.g., select menus)
 export function click(
     this: Supersonic,
     component: Component
@@ -26,6 +25,7 @@ export function click(
     component: string | Component, 
     callback?: (interaction: ButtonInteraction) => void
 ): void {
+    // TODO: add more components (e.g., select menus)
     let componentModule = typeof component === "string"
         ? { name: component, execute: callback! } as Component
         : component;

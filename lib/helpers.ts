@@ -10,6 +10,7 @@ import { pathToFileURL } from "url";
 import { CommandData, Supersonic } from "./types";
 
 export enum OptionType {
+    // Options 1 and 2 are subcommand and subcommand group, which are handled separately
     string = 3,
     int = 4,
     bool = 5,
@@ -164,6 +165,7 @@ export function getCommand(
     guildId?: string
 ) {
     const key = constructCommandKey(name, type, scope, guildId);
+    // Based on command key, get the mapping to the command module
     const mapping = this.mappings.get(key);
 
     if (mapping)
@@ -186,6 +188,7 @@ export function constructCommandKey(
 export function getNamedCommandType(
     type: ApplicationCommandType
 ): CommandType {
+    // Maps integer ApplicationCommandType to string CommandType
     return type === ApplicationCommandType.ChatInput 
         ? CommandType.Chat 
         : type === ApplicationCommandType.User 
@@ -217,7 +220,7 @@ export async function glob(
     pattern: string | string[], 
     options?: GlobOptions
 ): Promise<string[] | Path[]> {
-    // allows windows paths without removing the ability to escape glob patterns (see: windowsPathsNoEscape)
+    // Allows windows paths without removing the ability to escape glob patterns (see: windowsPathsNoEscape)
     if (typeof pattern === "string") 
         pattern = pattern.replaceAll(/\\/g, "/");
     else

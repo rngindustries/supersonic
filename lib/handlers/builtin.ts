@@ -12,7 +12,8 @@ export function handleInteraction(this: Supersonic, interaction: Interaction) {
     if (interaction.isCommand()) {
         const commandName = interaction.commandName;
         const commandType = getNamedCommandType(interaction.commandType);
-        const guildId = interaction.guildId ? interaction.guildId : undefined;
+        const guildId = interaction.guildId ?? undefined;
+        // Get command module
         const command = getCommand.call(
             this, 
             commandName, 
@@ -22,6 +23,7 @@ export function handleInteraction(this: Supersonic, interaction: Interaction) {
         );
 
         if (!command) {
+            // TODO: add warning explaining that there is an extant deleted command 
             interaction.reply({
                 content: Defaults.COMMAND_NOT_FOUND,
                 ephemeral: true
@@ -31,6 +33,7 @@ export function handleInteraction(this: Supersonic, interaction: Interaction) {
 
         try {
             if (this.middleware.length !== 0 || command.middleware.length !== 0) {
+                // All middleware must be ran before executor 
                 if (interaction.isChatInputCommand())
                     this.handleMiddleware<ChatInputCommandInteraction>(interaction, command as Command<ChatInputCommandInteraction>);
                 else if (interaction.isUserContextMenuCommand())
@@ -59,6 +62,7 @@ export function handleInteraction(this: Supersonic, interaction: Interaction) {
         const button = this.components.button.get(name as string);
 
         if (button === undefined)
+            // TODO: add warning here
             return;
 
         try {
@@ -87,6 +91,7 @@ export function runCommandExecutor<T extends CommandInteraction>(interaction: T,
             (command.execute["(main)"] as CommandExecutor<T>)(interaction);
         }
     } else if (interaction.isUserContextMenuCommand() || interaction.isMessageContextMenuCommand()) {
+        // User or message commands cannot have subcommands
         (command.execute["(main)"] as CommandExecutor<T>)(interaction);
     }
 }

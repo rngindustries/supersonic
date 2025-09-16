@@ -37,10 +37,16 @@ export function module<T extends CommandInteraction>(
     let commandData = parseCommandPayload.call(this, payload);
 
     commandModule.data = commandData;
+    // There is always only one executor at the end of the list, all other functions have to be middlewares
     commandModule.middleware = callbacks.slice(0, callbacks.length-1) as CommandMiddleware<T>[];
+    // commandModule.execute must hold more than one executor to ensure multiple subcommands can be handled 
     commandModule.execute = {};
 
     const executor = callbacks[callbacks.length-1] as CommandExecutor<T>;
+    // Format for executors is as follows:
+    // Subcommand groups & subcommands: `group:sub`
+    // Subcommands: `sub`
+    // Commands: `(main)`
     if (commandData.groupName && commandData.subName)
         commandModule.execute[`${commandData.groupName}:${commandData.subName}`] = executor;
     else if (!commandData.groupName && commandData.subName)
@@ -54,8 +60,8 @@ export function module<T extends CommandInteraction>(
 export function attach<T extends CommandInteraction>(
     this: Supersonic,
     commandModule: Command<T>,
-    // CommandCallbacks requires CommandExecutor to be present so we have 
-    // to force callbacks to be empty
+    // CommandCallbacks requires CommandExecutor to be present so we have to force callbacks
+    // to be empty since commandModule contains the executor
     ...callbacks: [] 
 ): void;
 export function attach<T extends CommandInteraction>(
@@ -68,6 +74,7 @@ export function attach<T extends CommandInteraction>(
     command: Command<T> | CommandPayload, 
     ...callbacks: [] | CommandCallbacks<T>
 ): void {
+    // Only command modules have the data property
     let commandModule = "data" in command 
         ? command as Command<T> 
         : module.call(this, command, ...callbacks as CommandCallbacks<CommandInteraction>); 
@@ -76,6 +83,7 @@ export function attach<T extends CommandInteraction>(
     let commandExists = false;
 
     if (commandData.subName || commandData.groupName)
+        // createSubcommand updates the module in this.commands or commandModule and returns whether command exists in this.commands or not
         commandExists = createSubcommand.call(this, commandModule as unknown as Command<ChatInputCommandInteraction>); 
 
     if (!commandExists)
@@ -92,6 +100,7 @@ export function registerCommand<T extends CommandInteraction>(
         guilds 
     } = commandModule.data;
     
+    // Helper function to register commands within their respective categories
     const register = (name: string, type: ApplicationCommandType) => {
         switch (type) {
             case ApplicationCommandType.ChatInput:
@@ -107,6 +116,8 @@ export function registerCommand<T extends CommandInteraction>(
     };
 
     if (guilds?.length) {
+        // Since multiple guilds can have the same command, each guild-based command has a key that maps to the primary key
+        // that holds the actual command module - primary keys point to themselves for simplicity
         let primaryKey: string | null = null;
         const guildMap = this.opts.guilds || {};
 
@@ -156,6 +167,7 @@ export function createSubcommand(
     ) as Command<ChatInputCommandInteraction>;
 
     if (commandData.groupName && commandData.subName) {
+        // Create options for subcommand and subcommand groups since Discord treats them as options
         let subOption = {
             type: ApplicationCommandOptionType.Subcommand,
             name: commandData.subName,
@@ -187,6 +199,8 @@ export function createSubcommand(
 
             return true;
         } else {
+            // Only contain groupOption in options array since commands with subcommands/groups can only have subcommand/group
+            // options - since the command does not exist yet, we know there are no other subcommands in the option array
             commandModule.data.options = [groupOption];
             commandModule.data.subDescription = undefined;
             commandModule.data.groupDescription = undefined;
@@ -244,7 +258,8 @@ export function parseCommandPayload(this: Supersonic, payload: CommandPayload): 
     ) {
         (commandData.guilds ??= []).push(Defaults.DEVELOPMENT_GUILD_NAME);
     }
-
+    
+    // Parse command shorthand e.g., /command [opt-1:type] ... <opt-2:type>
     if (
         payload.command.startsWith("m")
         || payload.command.startsWith("message")
@@ -255,6 +270,7 @@ export function parseCommandPayload(this: Supersonic, payload: CommandPayload): 
     else
         parseCommandShorthand(payload.command, commandData);
 
+    // Quick lookup for options created by shorthand parsing 
     const optionMap = new Map<string, CommandDataOption>();
     commandData.options.forEach(opt => optionMap.set(opt.name, opt));
 
@@ -270,6 +286,7 @@ export function parseCommandPayload(this: Supersonic, payload: CommandPayload): 
             optionMap.set(option.name, commandOption);
         }
 
+        // Option parameters from shorthand are overwritten if defined in the payload options array
         if (option.type) commandOption.type = option.type;
         if (option.required) commandOption.required = option.required;
         if (option.autocomplete) commandOption.autocomplete = option.autocomplete;
@@ -293,11 +310,20 @@ export function parseCommandShorthand(
     command: string, 
     commandData: CommandData
 ): void {
+    // Shorthand format:
+    // `/command:group:sub [optional-option-name:type:min=#:max=#] ... <required-option-name:type:min=#:max=#> -flag-1 ... -flag-n`
+    // - if sub does not exist, group = sub
+    // - optional options are defined using square brackets ([]); required options are defined using chevrons (<>)
+    // - type can be string, int, bool, user, channel, role, mentionable, number or attachment
+    // - min and max are optional
+    // - flags, e.g., `-nsfw`, are optional 
+    // TODO: shorten regex/find a better way to write the expression
     const SHORTHAND_REGEX = /^\/([\w-]{1,32})(?::([\w-]{1,32})(?::([\w-]{1,32}))?)?((?:\s[<\[][\w-]{1,32}:(?:string|int|bool|user|channel|role|mentionable|number|attachment)(?::(?:min|max)=\d+){0,2}[\]>])*)((?:\s-\w+)*)$/;
 
     const commandTokens = SHORTHAND_REGEX.exec(command) as string[] | null;
 
     if (!commandTokens)
+        // TODO: add error message explaining that shorthand did not follow the requested format
         return;
 
     const [
@@ -319,6 +345,7 @@ export function parseCommandShorthand(
     }
 
     if (options) {
+        // Simpler option regex to easily parse individual options
         const OPTION_REGEX = /[<\[]([\w-]{1,32}):(\w+)((?::(?:min|max)=\d+){0,2})[\]>]/g;
         let matchedOption: RegExpExecArray | null;
 
@@ -340,7 +367,7 @@ export function parseCommandShorthand(
             if (optionBounds) {
                 const bounds: Record<string, number> = {};
                 
-                // regex includes the `:` at the beginning
+                // Regex includes the `:` at the beginning
                 optionBounds.substring(1).split(":").forEach(bound => {
                     const [key, value] = bound.split("=");
                     bounds[key as string] = parseInt(value as string);
@@ -367,6 +394,9 @@ export function parseUiCommandShorthand(
     command: string,
     commandData: CommandData
 ): void {
+    // User and message commands cannot have options, and as such, the shorthand format is much simpler:
+    // `m/[ui-command with spaces] -flag-1 ... -flag-n`
+    // - `m` can be m, message, u, or user
     const UI_SHORTHAND_REGEX = /^(m|message|u|user)\/(\[[\w\s-]{1,32}\])((?:\s-\w+)+)*$/;
 
     const commandTokens = UI_SHORTHAND_REGEX.exec(command) as string[] | null;
@@ -381,7 +411,8 @@ export function parseUiCommandShorthand(
         flags
     ] = commandTokens;
 
-    commandData.name = name!.substring(0, name!.length - 1);
+    // Remove square brackets from name
+    commandData.name = name!.substring(1, name!.length - 1);
     commandData.type = type!.startsWith("m")
         ? ApplicationCommandType.Message
         : ApplicationCommandType.User;
