@@ -257,12 +257,12 @@ async function initializeEvents(this: Supersonic) {
     for (const [eventName, eventModules] of this.events.entries()) {
         const eventExecutor = async (...args: ClientEvents[typeof eventName]) => {
             for (const eventModule of eventModules) {
-                eventModule.execute.call(this, ...args);
+                (eventModule as Event<typeof eventName>).execute.call(this, ...args);
             }
         };
 
         // If even one module has 'once' set to true, then the event as a whole must use once
-        const useOnce = eventModules.some(eventModule => eventModule.once);
+        const useOnce = eventModules.some(mod => mod.once);
         (this.client as Client)[useOnce ? "once" : "on"](eventName, eventExecutor);
     }
 }

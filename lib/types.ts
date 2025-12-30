@@ -36,45 +36,44 @@ export interface Supersonic extends HeaderClient, HeaderMessage, HeaderHandlers,
 }
 
 export interface HeaderMessage {
-    paginate: (options: DynamicPaginationOptions) => Promise<InteractionCollector<ButtonInteraction> | undefined>;
-    paginateList: <T>(options: ListPaginationOptions<T>) => Promise<InteractionCollector<ButtonInteraction> | undefined>;
-    paginateListStr: <T>(options: StringListPaginationOptions<T>) => Promise<InteractionCollector<ButtonInteraction> | undefined>;
-    paginateStatic: (options: StaticPaginationOptions) => Promise<StaticPaginator>;
+    paginate(options: DynamicPaginationOptions): Promise<InteractionCollector<ButtonInteraction> | undefined>;
+    paginateList<T>(options: ListPaginationOptions<T>): Promise<InteractionCollector<ButtonInteraction> | undefined>;
+    paginateListStr<T>(options: StringListPaginationOptions<T>): Promise<InteractionCollector<ButtonInteraction> | undefined>;
+    paginateStatic(options: StaticPaginationOptions): Promise<StaticPaginator>;
 }
 
 export interface HeaderCommandHandler {
-    module: <T extends CommandInteraction>(payload: CommandPayload, ...callbacks: CommandCallbacks<T>) => Command<T>;
-    attach: {
-        <T extends CommandInteraction>(commandModule: Command<T>, ...callbacks: []): void;
-        <T extends CommandInteraction>(payload: CommandPayload, ...callbacks: CommandCallbacks<T>): void;
-    }
+    module<T extends CommandInteraction>(payload: CommandPayload, ...callbacks: CommandCallbacks<T>): Command<T>;
+    attach<T extends CommandInteraction>(commandModule: Command<T>, ...callbacks: []): void;
+    attach<T extends CommandInteraction>(payload: CommandPayload, ...callbacks: CommandCallbacks<T>): void;
 }
 
 export interface HeaderComponentHandler {
-    component: <T extends MessageComponentInteraction>(name: string, callback: (interaction: T) => void) => Component;
-    click: (name: string, callback: (interaction: ButtonInteraction) => void) => void;
+    component<T extends MessageComponentInteraction>(name: string, callback: (interaction: T) => void): Component;
+    click(name: string, callback: (interaction: ButtonInteraction) => void): void;
 }
 
 export interface HeaderEventHandler {
-    listen: (event: string, callback: (...args: ClientEvents[keyof ClientEvents]) => void) => void;
-    listener: (event: string, callback: (...args: ClientEvents[keyof ClientEvents]) => void) => Event<keyof ClientEvents>;
+    listener<E extends keyof ClientEvents>(event: string, callback: (...args: ClientEvents[E]) => void): Event<E>;
+    listen<E extends keyof ClientEvents>(event: string, callback: (...args: ClientEvents[E]) => void): void;
+    listen<E extends keyof ClientEvents>(eventModule: Event<E>): void;
 }
 
 export interface HeaderMiddlewareHandler {
-    use: <T extends CommandInteraction>(middlewareFn: CommandMiddleware<T>) => void;
-    handleMiddleware: <T extends CommandInteraction>(this: Supersonic, interaction: T, command: Command<T>) => void;
+    use<T extends CommandInteraction>(middlewareFn: CommandMiddleware<T>): void;
+    handleMiddleware<T extends CommandInteraction>(this: Supersonic, interaction: T, command: Command<T>): void;
 }
 
 export type HeaderHandlers = & HeaderCommandHandler & HeaderComponentHandler & HeaderEventHandler & HeaderMiddlewareHandler;
 
 export interface HeaderClient {
-    initialize: (options?: ClientOptions | string) => Promise<Client<boolean>>;
-    build: (token: string) => Promise<void>;
+    initialize(options?: ClientOptions | string): Promise<Client<boolean>>;
+    build(token: string): Promise<void>;
 }
 
 export interface HeaderUtils {
-    gucid: (name: string, state?: string[]) => string;
-    getClient: () => Client;
+    gucid(name: string, state?: string[]): string;
+    getClient(): Client;
 }
 
 export interface CommandList {

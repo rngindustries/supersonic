@@ -1,30 +1,30 @@
 import { ClientEvents } from "discord.js";
 import { Event, Supersonic } from "../types";
 
-export function listener(
+export function listener<E extends keyof ClientEvents>(
     event: string, 
-    callback: (...args: ClientEvents[keyof ClientEvents]) => void
-): Event<keyof ClientEvents> {
-    let eventModule = parseEvent(event) as Event<keyof ClientEvents>;
+    callback: (...args: ClientEvents[E]) => void
+): Event<E> {
+    let eventModule = parseEvent(event) as Event<E>;
 
     eventModule.execute = callback;
 
     return eventModule;
 }
 
-export function listen(
+export function listen<E extends keyof ClientEvents>(
     this: Supersonic,
-    eventModule: Event<keyof ClientEvents>
+    eventModule: Event<E>
 ): void;
-export function listen(
+export function listen<E extends keyof ClientEvents>(
     this: Supersonic,
     event: string,
-    callback: (...args: ClientEvents[keyof ClientEvents]) => void
+    callback: (...args: ClientEvents[E]) => void
 ): void;
-export function listen(
+export function listen<E extends keyof ClientEvents>(
     this: Supersonic, 
-    event: string | Event<keyof ClientEvents>, 
-    callback?: (...args: ClientEvents[keyof ClientEvents]) => void
+    event: string | Event<E>, 
+    callback?: (...args: ClientEvents[E]) => void
 ): void {
     const eventModule = typeof event === "string"
         ? listener(event, callback!)
@@ -35,14 +35,14 @@ export function listen(
     if (!this.events.has(eventName))
         this.events.set(eventName, []);
 
-    this.events.get(eventName)!.push(eventModule);
+    this.events.get(eventName)!.push(eventModule as Event<keyof ClientEvents>);
 }
 
-export function parseEvent(event: string) {
+export function parseEvent<E extends keyof ClientEvents>(event: string) {
     // TODO: change unnecessary @ needed before event name
     if (!event.startsWith("@")) return {};
     
-    let output = {} as Event<keyof ClientEvents>;
+    let output = {} as Event<E>;
 
     // Event names follow the format `event/alias!` where `event` is the actual event name as defined by the API,
     // `alias` is the name that the developer/Supersonic hold the module as, and `!` determines if the event must be 
