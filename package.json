@@ -1,6 +1,6 @@
 {
   "name": "@rngindustries/supersonic",
-  "version": "2.2.0",
+  "version": "2.2.2",
   "description": "A simple Discord framework for easy prototyping and building of Discord bots.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

@@ -23,6 +23,14 @@ export type SlashCommandInteraction = | ChatInputCommandInteraction | MessageCon
 
 export type SupportedCommandType = Exclude<ApplicationCommandType, ApplicationCommandType.PrimaryEntryPoint>;
 
+export type EventString = `@${keyof ClientEvents}${string}`;
+
+export type EventNameOf<S extends string> = 
+    S extends `@${infer E}/${string}` ? E & keyof ClientEvents : 
+    S extends `@${infer E}!` ? E & keyof ClientEvents :
+    S extends `@${infer E}` ? E & keyof ClientEvents :
+    never;
+
 export interface Supersonic extends HeaderClient, HeaderMessage, HeaderHandlers, HeaderUtils {
     commands: CommandList;
     mappings: Map<string, string>;
@@ -54,8 +62,8 @@ export interface HeaderComponentHandler {
 }
 
 export interface HeaderEventHandler {
-    listener<E extends keyof ClientEvents>(event: string, callback: (...args: ClientEvents[E]) => void): Event<E>;
-    listen<E extends keyof ClientEvents>(event: string, callback: (...args: ClientEvents[E]) => void): void;
+    listener<S extends EventString>(event: S, callback: (...args: ClientEvents[EventNameOf<S>]) => void): Event<EventNameOf<S>>;
+    listen<S extends EventString>(event: S, callback: (...args: ClientEvents[EventNameOf<S>]) => void): void;
     listen<E extends keyof ClientEvents>(eventModule: Event<E>): void;
 }
 

@@ -1,11 +1,11 @@
 import { ClientEvents } from "discord.js";
-import { Event, Supersonic } from "../types";
+import { Event, EventString, EventNameOf, Supersonic } from "../types";
 
-export function listener<E extends keyof ClientEvents>(
-    event: string, 
-    callback: (...args: ClientEvents[E]) => void
-): Event<E> {
-    let eventModule = parseEvent(event) as Event<E>;
+export function listener<S extends EventString>(
+    event: S, 
+    callback: (...args: ClientEvents[EventNameOf<S>]) => void
+): Event<EventNameOf<S>> {
+    let eventModule = parseEvent(event) as Event<EventNameOf<S>>;
 
     eventModule.execute = callback;
 
@@ -16,15 +16,15 @@ export function listen<E extends keyof ClientEvents>(
     this: Supersonic,
     eventModule: Event<E>
 ): void;
-export function listen<E extends keyof ClientEvents>(
+export function listen<S extends EventString>(
     this: Supersonic,
-    event: string,
-    callback: (...args: ClientEvents[E]) => void
+    event: S,
+    callback: (...args: ClientEvents[EventNameOf<S>]) => void
 ): void;
-export function listen<E extends keyof ClientEvents>(
+export function listen<E extends keyof ClientEvents, S extends EventString>(
     this: Supersonic, 
-    event: string | Event<E>, 
-    callback?: (...args: ClientEvents[E]) => void
+    event: S | Event<E>, 
+    callback?: (...args: ClientEvents[EventNameOf<S>]) => void
 ): void {
     const eventModule = typeof event === "string"
         ? listener(event, callback!)
@@ -38,11 +38,11 @@ export function listen<E extends keyof ClientEvents>(
     this.events.get(eventName)!.push(eventModule as Event<keyof ClientEvents>);
 }
 
-export function parseEvent<E extends keyof ClientEvents>(event: string) {
-    // TODO: change unnecessary @ needed before event name
-    if (!event.startsWith("@")) return {};
+export function parseEvent<S extends EventString>(event: S): Event<EventNameOf<S>> {
+    // Types enforce @ prefix in event string 
+    // if (!event.startsWith("@")) return {};
     
-    let output = {} as Event<E>;
+    let output = {} as Event<EventNameOf<S>>;
 
     // Event names follow the format `event/alias!` where `event` is the actual event name as defined by the API,
     // `alias` is the name that the developer/Supersonic hold the module as, and `!` determines if the event must be 
